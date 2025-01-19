@@ -8,12 +8,6 @@
     <router-link class="c-link c-link--hover" to="/"> >>TOPページへ</router-link>
     <br /><br />
 </template>
-<script>
+<script setup>
 import CookiePolicy from '../../components/CookiePolicy.vue'
-
-export default {
-    components: {
-        CookiePolicy
-    }
-}
 </script>

@@ -13,10 +13,15 @@
                 >
             </div>
             <div class="p-form__input p-form__input--photo">
-                <img v-show="!preview" src="../../image/photoform.png" class="p-form__photo" />
-                <input @change="onFileChange" type="file" class="c-input c-input--photo" />
-                <output v-show="preview" class="p-form__output">
-                    <img :src="preview" class="p-form__output-image" alt="" />
+                <img v-show="!preview.data" src="../../image/photoform.png" class="p-form__photo" />
+                <input
+                    @change="onFileChange"
+                    type="file"
+                    class="c-input c-input--photo"
+                    ref="photoinput"
+                />
+                <output v-show="preview.data" class="p-form__output">
+                    <img :src="preview.data" class="p-form__output-image" alt="" />
                 </output>
             </div>
             <div class="p-form__label">
@@ -28,7 +33,7 @@
             <div class="p-form__input">
                 <i class="fa-solid fa-tags p-form__input-icon"></i>
                 <input
-                    v-model="tags"
+                    v-model="tags.content"
                     type="text"
                     title="最大５個まで登録可能"
                     placeholder="タグ ※合計５個まで"
@@ -37,7 +42,13 @@
             </div>
             <Note />
             <button
-                v-show="photoValidationFlg && !validationNewPieces && !validationWordCount"
+                v-show="
+                    photoValidationFlg &&
+                    !tagValidation.newPieces &&
+                    !tagValidation.wordCount &&
+                    !photoErrors.photo &&
+                    !photoErrors.tags
+                "
                 @click.prevent="submitPhoto"
                 class="c-button c-button--form p-form__button"
                 type="button"
@@ -45,7 +56,12 @@
                 upload
             </button>
             <div
-                v-show="!photoValidationFlg || validationNewPieces || validationWordCount"
+                v-show="
+                    !photoValidationFlg ||
+                    tagValidation.newPieces ||
+                    tagValidation.wordCount ||
+                    photoErrors
+                "
                 class="p-form__error p-form__error--photo"
             >
                 <div v-if="photoErrors && photoErrors.photo" class="p-form__error-message">
@@ -58,12 +74,14 @@
                         {{ msg }}
                     </label>
                 </div>
-                <div v-show="preview" class="p-form__error-message">
-                    <span v-show="validationWordCount">{{ validationWordCount }}<br /></span>
-                    <span v-show="validationNewPieces">{{ validationNewPieces }}</span>
+                <div v-show="preview.data" class="p-form__error-message">
+                    <span v-show="tagValidation.wordCount"
+                        >{{ tagValidation.wordCount }}<br
+                    /></span>
+                    <span v-show="tagValidation.newPieces">{{ tagValidation.newPieces }}</span>
                 </div>
-                <div v-show="photoValidation" class="p-form__error-message">
-                    {{ photoValidation }}
+                <div v-show="validation.photo" class="p-form__error-message">
+                    {{ validation.photo }}
                 </div>
             </div>
             <button
@@ -76,195 +94,182 @@
         </div>
     </div>
 </template>
-<script>
+<script setup>
 import { request } from '../bootstrap'
 import { CREATED, UNPROCESSABLE_ENTITY } from '../util'
 import Loader from './LoaderComponent.vue'
 import Note from './CautionaryNote.vue'
+import { useStore } from 'vuex'
+import { ref, computed, watch, onUpdated } from 'vue'
+import { useRouter } from 'vue-router'
+import { useForm } from '../methods/UseForm'
+import { useTag } from '../methods/UseTag'
 
-export default {
-    components: {
-        Loader,
-        Note
-    },
-    data() {
-        return {
-            preview: null, //プレビュー機能用にファイルの画像データを格納する変数
-            photo: null, //選択した写真ファイル自体を格納する変数
-            photoErrors: null,
-            viewLoader: false,
-            photoValidation: '',
-            tags: '', //tagを格納する文字列変数
-            validationNewPieces: '',
-            validationWordCount: '',
-            photoValidationFlg: false
-        }
-    },
-    computed: {
-        //フォトフォームを表示するか否かのFlg
-        showPhotoForm() {
-            return this.$store.state.formTab.showPhotoForm
-        }
-    },
-    methods: {
-        //inputタグでファイルが選択されたらバリデーションしてpreview表示するメソッド
-        onFileChange(event) {
-            this.preview = null
-            this.photoErrors = null
-            this.photoValidation = ''
-            this.photoValidationFlg = false
-            //ファイルが空だったら処理中止
-            if (event.target.files.length === 0) {
-                this.reset()
-                return false
-            }
-            //ファイルが画像形式でなかったら処理中止
-            if (!event.target.files[0].type.match('image.*')) {
-                this.photoValidation = '画像形式のみ保存可能です'
-                return false
-            }
-            //ファイルが画像形式でなかったら処理中止
-            if (event.target.files[0].size >= 2000000) {
-                this.photoValidation = 'ファイルの上限サイズ2MBを超えています'
-                return false
-            }
-            //FileRenderのインスタンスを生成
-            const reader = new FileReader()
-            const image = new Image()
-            reader.onload = (e) => {
-                //縦横のサイズ確認用変数checkImgに画像データを格納
-                const checkImg = e.target.result
-                image.src = checkImg
-                image.onload = () => {
-                    // 画像が縦長でなかったら処理終了
-                    if (image.naturalWidth >= image.naturalHeight) {
-                        this.photoValidation = '縦長の画像のみ保存可能です'
-                        return false
-                    } else {
-                        //縦長画像なら表示用変数previewにデータを格納してバリデーション終了
-                        this.preview = e.target.result
-                        this.photoValidationFlg = true
-                    }
-                }
-            }
-            //ファイルのデータをdataURLに変換
-            reader.readAsDataURL(event.target.files[0])
-            //サーバに送信する変数photoに格納
-            this.photo = event.target.files[0]
-        },
+const store = useStore()
+const router = useRouter()
+const form = useForm()
+const { tagValidation, tagValidate, verifiedWord } = useTag()
 
-        //タグ新規登録時に入力値inputをバリデーションするメソッド
-        tagValidation(input) {
-            //inputにスペース以外の入力があったら
-            if (input.match(/\S/g)) {
-                //入力文字列inputをスペースで区切り、配列inputWordsに変換
-                let inputWords = input.split(/\s+/)
+const preview = ref({ data: null }) //プレビュー機能用にファイルの画像データを格納する変数
+const photo = ref(null) //選択した写真ファイル自体を格納する変数
+const photoErrors = ref({
+    photo: null,
+    tags: null
+}) //サーバーからresponseされたerrorメッセージ
+const viewLoader = ref(false)
+const validation = ref({
+    photo: '' //写真データ
+})
+const tags = ref({ content: '' }) //tagを格納する文字列変数
+const photoValidationFlg = ref(false)
+const top = ref()
+const photoinput = ref() //input要素を操作するためのref属性
+//フォトフォームを表示するか否かのFlg
+const showPhotoForm = computed(() => {
+    return store.state.formTab.showPhotoForm
+})
 
-                //新規登録tagと登録済みtagを連結、要素から空白を取り除いて配列tagWordsに格納
-                let tagWords = inputWords.filter((word) => {
-                    return !(
-                        word === null ||
-                        word === undefined ||
-                        word === '' ||
-                        !word.match(/\S/g)
-                    )
-                })
-                //重複入力を取り除く
-                tagWords = [...new Set(tagWords)]
-                //バリデーション
-                if (tagWords.length > 5) {
-                    this.validationNewPieces = '登録できるタグは５個までです'
-                } else {
-                    this.validationNewPieces = ''
-                }
-                if (
-                    tagWords.find((word) => {
-                        return word.length > 10
-                    })
-                ) {
-                    this.validationWordCount = '1タグの最大文字数は10文字です'
-                } else {
-                    this.validationWordCount = ''
-                }
-            }
-        },
-        //フォームの入力内容とエラーメッセージを空にするメソッド
-        reset() {
-            ;(this.preview = ''),
-                (this.photo = null),
-                (this.$el.querySelector('input[type="file"]').value = null)
-            this.photoErrors = ''
-            this.photoValidation = ''
-            this.validationNewPieces = ''
-            this.validationWordCount = ''
-        },
-        //写真をサーバーに送信するメソッド
-        async submitPhoto() {
-            this.viewLoader = true
-            const PhotoData = new FormData()
-            PhotoData.append('photo', this.photo)
-            //もしtag入力があったら一緒にformdataにする
-            if (this.tags !== '' && this.tags.match(/\S/g)) {
-                PhotoData.append('tags', this.tags)
-            }
-            //APIサーバーからの返信を変数responseに格納
-            const response = await request.post('/api/photos', PhotoData)
-            this.viewLoader = false
-            //返信がバリデーションエラーメッセージならメッセージを表示して処理中止
-            if (response.status === UNPROCESSABLE_ENTITY) {
-                this.photoErrors = response.data.errors
-                return false
-            }
-            //フォームの内容やerrorメッセージを空にしてフォームを閉じる
-            this.reset()
-            this.tags = ''
-            this.$store.commit('formTab/setShowPhotoForm')
-            //通信成功以外ならエラーメッセージを表示するページへ移動して終了
-            if (response.status !== CREATED) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            //通信成功ならsuccessメッセージを表示して投稿した写真の詳細ページへリダイレクト
-            this.$store.commit('message/setSuccess', {
-                message: '写真を投稿しました！',
-                timeout: 6000
-            })
-            this.$router.push(`/photos/${response.data.id}`)
-        },
-        //フォームを閉じるメソッド
-        changeShowPhotoForm() {
-            this.$store.commit('formTab/setShowPhotoForm')
-        }
-    },
-    watch: {
-        //tagが入力されたら即時バリデーション
-        tags(newValue) {
-            if (newValue) {
-                this.tagValidation(newValue)
-            } else if (newValue === '') {
-                this.validationNewPieces = ''
-                this.validationWordCount = ''
-            }
-        },
-        //preview画像が差し代わったらinputタグのtagsをバリデーションチェックする
-        preview() {
-            this.tagValidation(this.tags)
-        },
+//inputタグでファイルが選択されたらバリデーションしてpreview表示するメソッド
+const onFileChange = (event) => {
+    form.reset(
+        preview.value,
+        photoErrors.value,
+        validation.value,
+        tagValidation.value,
+        verifiedWord
+    )
+    photoValidationFlg.value = false
 
-        // 写真フォームが閉じられたら入力内容を初期化（入力項目とエラーメッセージを空にする）
-        showPhotoForm(newValue) {
-            if (newValue === false) {
-                this.reset()
-                this.tags = ''
-            }
-        }
-    },
-    updated() {
-        if (!this.$refs.top) {
-            // 要素が取得できなかった場合は終了
-            return
-        }
-        this.$refs.top.scrollTop = 0
+    //ファイルが空だったら処理中止
+    if (event.target.files.length === 0) {
+        form.reset(photo.value, preview.value, validation.value, tagValidation.value, verifiedWord)
+        photoinput.value.value = null
+        photoValidationFlg.value = false
+        //    preview.value = null
+        return false
     }
+    //ファイルが画像形式でなかったら処理中止
+    if (!event.target.files[0].type.match('image.*')) {
+        validation.value.photo = '画像形式のみ保存可能です'
+        return false
+    }
+    //ファイルが画像形式でなかったら処理中止
+    if (event.target.files[0].size >= 2000000) {
+        validation.value.photo = 'ファイルの上限サイズ2MBを超えています'
+        return false
+    }
+    //FileRenderのインスタンスを生成
+    const reader = new FileReader()
+    const image = new Image()
+    reader.onload = (e) => {
+        //縦横のサイズ確認用変数checkImgに画像データを格納
+        const checkImg = e.target.result
+        image.src = checkImg
+        image.onload = () => {
+            // 画像が縦長でなかったら処理終了
+            if (image.naturalWidth >= image.naturalHeight) {
+                validation.value.photo = '縦長の画像のみ保存可能です'
+                return false
+            } else {
+                //縦長画像なら表示用変数previewにデータを格納してバリデーション終了
+                preview.value.data = e.target.result
+                photoValidationFlg.value = true
+            }
+        }
+    }
+    //ファイルのデータをdataURLに変換
+    reader.readAsDataURL(event.target.files[0])
+    //サーバに送信する変数photoに格納
+    photo.value = event.target.files[0]
 }
+//写真をサーバーに送信するメソッド
+const submitPhoto = async () => {
+    viewLoader.value = true
+    const PhotoData = new FormData()
+    PhotoData.append('photo', photo.value)
+    //もしtag入力があったら一緒にformdataにする
+    if (tags.value.content !== '' && tags.value.content.match(/\S/g)) {
+        PhotoData.append('tags', verifiedWord.content)
+    }
+    //APIサーバーからの返信を変数responseに格納
+    const response = await request.post('/api/photos', PhotoData)
+    viewLoader.value = false
+    //返信がバリデーションエラーメッセージならメッセージを表示して処理中止
+    if (response.status === UNPROCESSABLE_ENTITY) {
+        photoErrors.value = response.data.errors
+        return false
+    }
+    //フォームの内容やerrorメッセージを空にしてフォームを閉じる
+    form.reset(
+        photo.value,
+        tags.value,
+        preview.value,
+        validation.value,
+        tagValidation.value,
+        verifiedWord
+    )
+    photoValidationFlg.value = false
+    photoinput.value.value = null
+    store.commit('formTab/setShowPhotoForm')
+    //通信成功以外ならエラーメッセージを表示するページへ移動して終了
+    if (response.status !== CREATED) {
+        store.commit('error/setCode', response.status)
+        return false
+    }
+    //通信成功ならsuccessメッセージを表示して投稿した写真の詳細ページへリダイレクト
+    store.commit('message/setSuccess', {
+        message: '写真を投稿しました！',
+        timeout: 6000
+    })
+    router.push(`/photos/${response.data.id}`)
+}
+//フォームを閉じるメソッド
+const changeShowPhotoForm = () => {
+    store.commit('formTab/setShowPhotoForm')
+}
+
+watch(
+    //tagが入力されたら即時バリデーション
+    () => tags.value.content,
+    (newValue) => {
+        photoErrors.value.tags = ''
+        if (newValue) {
+            tagValidate(newValue)
+        } else if (newValue === '') {
+            tagValidation.value.newPieces = ''
+            tagValidation.value.wordCount = ''
+        }
+    }
+)
+//preview画像が差し代わったらinputタグのtagsをバリデーションチェックする
+watch(
+    () => preview.value.data,
+    () => {
+        tagValidate(tags.value.content)
+    }
+)
+
+// 写真フォームが閉じられたら入力内容を初期化（入力項目とエラーメッセージを空にする）
+watch(showPhotoForm, (newValue) => {
+    if (newValue === false) {
+        form.reset(
+            photo.value,
+            tags.value,
+            validation.value,
+            preview.value,
+            photoErrors.value,
+            tagValidation.value,
+            verifiedWord
+        )
+        photoinput.value.value = null
+        photoValidationFlg.value = false
+    }
+})
+onUpdated(() => {
+    if (!top.value) {
+        // 要素が取得できなかった場合は終了
+        return
+    }
+    top.value.scrollTop = 0
+})
 </script>

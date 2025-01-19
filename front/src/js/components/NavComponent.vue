@@ -36,34 +36,30 @@
         <PhotoForm v-show="showPhotoForm" />
     </header>
 </template>
-<script>
+<script setup>
 import PhotoForm from './PhotoForm.vue'
 import { request } from '../bootstrap'
-export default {
-    components: {
-        PhotoForm
-    },
-    computed: {
-        //ログイン中(true)か否(false)かを表す
-        isLogin() {
-            return this.$store.getters['auth/check']
-        },
-        //写真投稿フォームを表示するか(true)か否(false)かを表す
-        showPhotoForm() {
-            return this.$store.state.formTab.showPhotoForm
-        }
-    },
-    methods: {
-        //写真投稿フォームを表示するFlgをtrueにするメソッド
-        async changeShowPhotoForm() {
-             // 【認証切れ対策】CSRFトークンを更新する
-            await request.get('/sanctum/csrf-cookie')
-            this.$store.commit('formTab/setShowPhotoForm')
-        },
-        //検索窓の入力値を空にするメソッド
-        resetSearchPhoto() {
-            this.$store.dispatch('search/searchReset')
-        }
-    }
+import { useStore } from 'vuex'
+import { computed } from 'vue'
+import { useAuth } from '../methods/UseAuth'
+const store = useStore()
+const { isLogin } = useAuth()
+
+//写真投稿フォームを表示するか(true)か否(false)かを表す
+const showPhotoForm = computed(() => {
+    return store.state.formTab.showPhotoForm
+})
+
+//写真投稿フォームを表示するFlgをtrueにするメソッド
+const changeShowPhotoForm = async () => {
+    // 【認証切れ対策】CSRFトークンを更新する
+    await request.get('/sanctum/csrf-cookie')
+    store.commit('formTab/setShowPhotoForm')
+    return false
+}
+//検索窓の入力値を空にするメソッド
+const resetSearchPhoto = () => {
+    store.dispatch('search/searchReset')
+    return false
 }
 </script>

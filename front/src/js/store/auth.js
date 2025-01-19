@@ -11,13 +11,16 @@ export default {
     state: {
         user: '', //ログイン中のユーザーの登録情報
         apiStatus: '', //API処理の成功か失敗かを表すflg
-        loginErrorMessage: '',
-        registerErrorMessage: ''
+        loginErrorMessage: '', //APIresponseに含まれたログインエラーメッセージ
+        registerErrorMessage: '' // APIresponseに含まれた登録時エラーメッセージ
     },
     getters: {
         check: (state) => !!state.user, //ログインしているか否かを表すflg
         username: (state) => (state.user ? state.user.nickname : ''), //ログイン中のユーザーのnickname
-        user: (state) => state.user //ログイン中のユーザーの登録情報
+        user: (state) => state.user, //ログイン中のユーザーの登録情報
+        getloginErrorMessage: (state) => state.loginErrorMessage,
+        getRegisterErrorMessage: (state) => state.registerErrorMessage,
+        createNickNameFlg: (state) => !!state.registerErrorMessage.nickname //Nickname候補生成が必要かを表すflg
     },
     mutations: {
         setUser(state, user) {
@@ -31,6 +34,9 @@ export default {
         },
         setRegisterErrorMessage(state, message) {
             state.registerErrorMessage = message
+        },
+        setRegisterErrorMessageSingle(state, item, message) {
+            state.registerErrorMessage[item] = message
         }
     },
     actions: {
@@ -134,8 +140,10 @@ export default {
             context.commit('setApiStatus', '')
             const response = await request.put('/api/register', formUserData)
             if (response.status === OK) {
-                context.commit('setApiStatus', true)
-                context.commit('setUser', response.data)
+                await context.commit('setApiStatus', true)
+                //新パスワードでの再ログインを促すためにログアウト状態へ
+                await context.commit('setUser', '')
+                await request.get('/sanctum/csrf-cookie')
                 return false
             }
             context.commit('setApiStatus', false)
@@ -153,7 +161,7 @@ export default {
             const response = await request.delete('/api/register')
             if (response.status === OK) {
                 context.commit('setApiStatus', true)
-                context.commit('setUser', '')
+                await context.commit('setUser', '')
                 return false
             }
             context.commit('setApiStatus', false)
@@ -161,10 +169,17 @@ export default {
                 root: true
             })
         },
-        //エラーメッセージをクリアするメソッド
-        allErrorMessageClear(context) {
-            context.commit('setRegisterErrorMessage', '')
+        //ログインエラーメッセージを一括クリアするメソッド
+        loginErrorMessageClear(context) {
             context.commit('setLoginErrorMessage', '')
+        },
+        //登録エラーメッセージを一括クリアするメソッド
+        registerErrorMessageClear(context) {
+            context.commit('setRegisterErrorMessage', '')
+        },
+        //登録エラーメッセージをクリアするメソッド(単体)
+        registerErrorMessageSingleClear(context, item) {
+            context.commit('setRegisterErrorMessageSingle', item, '')
         }
     }
 }

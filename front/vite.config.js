@@ -44,13 +44,19 @@ export default defineConfig({
 	css: {
 		preprocessorOptions: {
 			scss: {
-				api: 'modern-compiler'
+				api: 'modern-compiler' // or "modern"
 			},
 		},
 	},
 	server: {
+		port: 8084,
     proxy: {
       "/api": {
+        target: "http://localhost:80/",
+        changeOrigin: true,
+			},
+			
+			"/sanctum/csrf-cookie": {
         target: "http://localhost:80/",
         changeOrigin: true,
 			},

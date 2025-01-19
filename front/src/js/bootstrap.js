@@ -1,6 +1,7 @@
 import axios from 'axios'
 export const API_URL = 'http://localhost'
 
+
 export const request = axios.create({
     baseURL: API_URL,
     headers: {

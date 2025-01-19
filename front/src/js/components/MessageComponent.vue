@@ -27,34 +27,30 @@
     </div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            message: ''
-        }
-    },
-    computed: {
-        //storeの値が更新されたらflgでaleartかsuccessかをFlgに代入しつつ、内容を返すメソッド
-        flgCheckAlert() {
-            return this.$store.getters['message/checkAlert']
-        },
-        flgCheckSuccess() {
-            return this.$store.getters['message/checkSuccess']
-        },
-        messageCheck() {
-            if (this.$store.state.message.alert) {
-                return this.$store.state.message.alert
-            } else {
-                return this.$store.state.message.success
-            }
-        }
-    },
-    watch: {
-        //messageCheck(storeに格納されている値)が変更されたらdataの値を更新する
-        messageCheck() {
-            this.message = this.messageCheck
-        }
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useStore } from 'vuex'
+
+const store = useStore()
+const message = ref('')
+//storeの値が更新されたらflgでaleartかsuccessかをFlgに代入しつつ、内容を返すメソッド
+const flgCheckAlert = computed(() => {
+    return store.getters['message/checkAlert']
+})
+//storeの値が更新されたらflgでaleartかsuccessかをFlgに代入しつつ、内容を返すメソッド
+const flgCheckSuccess = computed(() => {
+    return store.getters['message/checkSuccess']
+})
+
+const messageCheck = computed(() => {
+    if (store.state.message.alert) {
+        return store.state.message.alert
+    } else {
+        return store.state.message.success
     }
-}
+})
+//messageCheck(storeに格納されている値)が変更されたらdataの値を更新する
+watch(messageCheck, (newMessage) => {
+    message.value = newMessage
+})
 </script>

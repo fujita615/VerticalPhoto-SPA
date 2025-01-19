@@ -1,4 +1,9 @@
 @use '../../Foundation';
+//    <input type="radio" v-model="searchMethod" value="and" class="c-radio" id="and" checked />
+//     <label class="c-radio__label  c-radio__label--search" for="and">and</label>
+//     <input type="radio" v-model="searchMethod" value="or" class="c-radio" id="or"/>
+//     <label class="c-radio__label  c-radio__label--search" for="or">or</label>
+
 .c-radio {
     display: none;
 

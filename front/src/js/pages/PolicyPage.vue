@@ -81,14 +81,7 @@
         </div>
     </div>
 </template>
-<script>
+<script setup>
 import CookiePolicy from '../components/CookiePolicy.vue'
 import CautionaryNote from '../components/CautionaryNote.vue'
-
-export default {
-    components: {
-        CautionaryNote,
-        CookiePolicy
-    }
-}
 </script>

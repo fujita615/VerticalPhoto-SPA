@@ -24,19 +24,15 @@
         </template>
     </DialogComponent>
 </template>
-<script>
+<script setup>
+import { useStore } from 'vuex'
 import DialogComponent from './DialogComponent.vue'
 
-export default {
-    components: {
-        DialogComponent
-    },
-    methods: {
-        // お問い合わせフォームを初期化して閉じるメソッド
-        resetContactForm() {
-            this.$store.commit('formTab/setShowContactForm')
-            this.$store.commit('formTab/setMailSituation', 'edit')
-        }
-    }
+const store = useStore()
+// お問い合わせフォームを初期化して閉じるメソッド
+const resetContactForm = () => {
+    store.commit('formTab/setShowContactForm')
+    store.commit('formTab/setMailSituation', 'edit')
+    return false
 }
 </script>

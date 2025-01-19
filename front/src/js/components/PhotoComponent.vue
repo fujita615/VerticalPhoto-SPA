@@ -2,7 +2,8 @@
     <li>
         <figure class="p-photolist__figure">
             <router-link
-                :to="`/photos/${item.id}`"
+               
+                :to="{name: 'photos', query:{id:`${item.id}`}}"
                 :title="`View the photo by ${item.owner.nickname}`"
                 class="c-figure c-figure--zoom-mask"
             >
@@ -36,18 +37,18 @@
                             :class="{
                                 'is-liked': item.liked_by_user
                             }"
-                            class="c-button c-button--photo c-button--photo-list"
-                            :disabled="this.flg"
+                            class="c-button c-button--photo c-button--photo-list c-button--photo-like"
+                            :disabled="flg"
                         >
                             <span class="c-button__text">
                                 <i
                                     class="fa-regular fa-thumbs-up"
                                     :class="{
-                                        'faa-tada animated': this.flg
+                                        'faa-tada animated': flg
                                     }"
-                                ></i>
-                                {{ item.likes_count }}</span
-                            >
+                                ></i
+                            ></span>
+                            <span class="c-button__text"> {{ item.likes_count }}</span>
                         </button>
                         <div
                             v-show="item.posted_by_user"
@@ -68,61 +69,54 @@
     </li>
 </template>
 
-<script>
+<script setup>
 import { API_URL } from '../bootstrap.js'
-
-export default {
+import { ref, watch } from 'vue'
+import { useAuth } from '../methods/UseAuth.js'
+const { isLogin } = useAuth()
+const props = defineProps({
     //親コンポーネントから渡ってくる写真（１枚）データ
-    props: {
-        item: {
-            type: Object,
-            required: true
-        },
-        // いいね処理が完了した写真のID
-        completionid: {
-            type: String,
-            required: true
-        }
+    item: {
+        type: Object,
+        required: true
     },
-    data() {
-        return {
-            //いいね処理中のflg（ボタンを非活性にしてcssを変更）
-            flg: false,
-            URL: API_URL
-        }
+    photos: {
+        type: Object,
+        required: true
     },
-    computed: {
-        //ログイン中か否か
-        isLogin() {
-            return this.$store.getters['auth/check']
-        }
-    },
-    methods: {
-        //クリックされたらいいね通信中flgをtrueにして、写真のIDといいね済みかと投稿者かを親コンポーネントに知らせるメソッド
-        like() {
-            //いいねAPI通信中flg(ボタンを非活性にする)
-            this.flg = true
-            this.$emit('like', {
-                id: this.item.id,
-                liked: this.item.liked_by_user,
-                self: this.item.posted_by_user
-            })
-        },
-        // 親コンポーネントから渡ってきた いいね処理が終わった写真のIDが一致したら
-        // いいねAPI通信中flgをfalseにするメソッド
-        enableLikes(completionID) {
-            if (this.flg && this.item.id === completionID) {
-                this.flg = false
-            }
-        }
-    },
-    // いいねAPI完了の写真のIDの通知を監視
-    watch: {
-        completionid(newValue) {
-            if (newValue !== '') {
-                this.enableLikes(newValue)
+    // いいね処理が完了した写真のID
+    completionid: {
+        type: String
+    }
+})
+const emit = defineEmits(['like'])
+
+//いいね処理中のflg（ボタンを非活性にしてcssを変更）
+const flg = ref(false)
+const URL = ref(API_URL)
+
+//クリックされたらいいね通信中flgをtrueにして、写真のIDといいね済みかと投稿者かを親コンポーネントに知らせるメソッド
+const like = () => {
+    //いいねAPI通信中flg(ボタンを非活性にする)
+    flg.value = true
+    emit('like', {
+        id: props.item.id,
+        liked: props.item.liked_by_user,
+        self: props.item.posted_by_user,
+        photos: props.photos
+    })
+}
+// いいねAPI完了の写真のIDの通知を監視
+watch(
+    // 親コンポーネントから渡ってきた いいね処理が終わった写真のIDが一致したら
+    // いいねAPI通信中flgをfalseにするメソッド
+    () => props.completionid,
+    (newValue) => {
+        if (newValue !== '') {
+            if (flg.value === true && props.item.id === newValue) {
+                flg.value = false
             }
         }
     }
-}
+)
 </script>

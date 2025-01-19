@@ -26,17 +26,13 @@
         </template>
     </DialogComponent>
 </template>
-<script>
+<script setup>
 import DialogComponent from './DialogComponent.vue'
-export default {
-    components: {
-        DialogComponent
-    },
-    methods: {
-        // ダイアログを閉じるメソッド
-        closeDialog() {
-            this.$store.commit('formTab/setWelcomeFlg')
-        }
-    }
+import { useStore } from 'vuex'
+
+const store = useStore()
+// ダイアログを閉じるメソッド
+const closeDialog = () => {
+    return store.commit('formTab/setWelcomeFlg')
 }
 </script>

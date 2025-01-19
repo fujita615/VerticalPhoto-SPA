@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build &&  esbuild dist/assets/**.js --minify --outdir=dist/assets --allow-overwrite",
     "preview": "vite preview",
-    "lint": "eslint src/ --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "lint": "eslint src/ --ext .vue,.js,.jsx,.cjs,.mjs --fix",
     "format": "prettier --write src/"
   },
   "dependencies": {
@@ -33,10 +33,12 @@
     "vue-router": "^4.4.4",
     "vuex": "^4.1.0"
   },
+"license": "UNLICENSED",
   "browserslist": [
     "last 2 versions",
     "android >= 4",
     "iOS >= 10",
     "not dead"
   ]
+ 
 }

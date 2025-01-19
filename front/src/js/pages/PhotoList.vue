@@ -12,209 +12,137 @@
                 v-for="photo in viewPhotos"
                 :key="photo.id"
                 :item="photo"
+                :photos="photos"
                 @like="onLikeClick"
                 :completionid="completionID"
                 class="p-photolist__card"
             />
         </ul>
     </div>
-    <MoreView ref="MoreView" :all-items="photos" :load-num="loadNum" @view-items="loadMoreView" />
-    <!-- <PageLink :current-page="currentPage" :last-page="lastPage"></PageLink> -->
+    <MoreViewComponent
+        ref="MoreView"
+        :all-items="photos"
+        :load-num="loadNum"
+        @view-items="loadMoreView"
+    />
 </template>
-<script>
-import { OK } from '../util'
+<script setup>
 import PhotoComponent from '../components/PhotoComponent.vue'
-import MoreView from '../components/MoreView.vue'
-import { request } from '../bootstrap'
+import MoreViewComponent from '../components/MoreView.vue'
 import SearchComponent from '../components/SearchComponent.vue'
+import { useStore } from 'vuex'
+import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useLike } from '../methods/UseLike'
 
-export default {
-    components: {
-        PhotoComponent,
-        MoreView,
-        SearchComponent
-        // PageLink,
+const store = useStore()
+const route = useRoute()
+const router = useRouter()
+const { onLikeClick, completionID } = useLike()
+
+const props = defineProps({
+    photoTag: {
+        type: String,
+        required: false,
+        default: ''
+    }
+})
+const photos = ref([]) //moreview(分割加工コンポーネント)に渡すためのデータ
+const viewPhotos = ref([]) //表示するために分割加工したデータ
+const loadNum = ref(12) //一度に表示する写真の個数
+const MoreView = ref()
+const searchPhotos = ref([])
+
+//絞り込み検索の結果を表すフラグ
+const searchFlg = computed({
+    get() {
+        return store.getters['search/flg']
     },
-    props: {
-        // page: {
-        //     type: Number,
-        //     required: false,
-        //     default:1,
-        // },
-        photoTag: {
-            //router.js経由で渡される検索タグ名
-            type: String,
-            required: false,
-            default: ''
-        }
+    set(newValue) {
+        return store.commit('search/setFlg', newValue)
+    }
+})
+//一覧表示する写真データ
+const allPhotos = computed({
+    get() {
+        return store.getters['search/allPhotos']
     },
-    data() {
-        return {
-            photos: [], //moreview(分割加工コンポーネント)に渡すためのデータ
-            viewPhotos: [], //表示するために分割加工したデータ
-            loadNum: 12, //一度に表示する写真の個数
-            completionID: '' //子コンポーネントに渡すいいね処理が終了したID
-            //  currentPage: 0,※pagination用
-            // lastPage: 0,※pagination用
-        }
-    },
-    computed: {
-        //絞り込み検索の結果を表すフラグ
-        searchFlg: {
-            get() {
-                return this.$store.getters['search/flg']
-            },
-            set(newValue) {
-                return this.$store.commit('search/setFlg', newValue)
-            }
-        },
-        //一覧表示する写真データ
-        allPhotos: {
-            get() {
-                return this.$store.getters['search/allPhotos']
-            },
-            set(newValue) {
-                return this.$store.commit('search/setAllPhotos', newValue)
-            }
-        }
-    },
-    methods: {
-        // タグ指定があった場合、全写真から絞り込み検索をするメソッド
-        async fetchTagPhotos() {
-            if (this.photoTag === '') {
-                return false
-            }
-            if (this.photoTag !== '') {
-                await this.$store.commit(
-                    'search/setAllPhotos',
-                    this.allPhotos.filter((photo) => {
-                        return photo.tags.some((tag) => {
-                            return tag.name === this.photoTag
-                        })
-                    })
-                )
-            }
-            // 絞り込み検索の結果,データがなかった場合（=urlの直接入力時）検索結果flgをnoneにして、TOP画面へリダイレクト
-            if (this.allPhotos.length === 0) {
-                this.$store.commit('search/setFlg', 'none')
-                this.$router.push('/')
-            }
-        },
-        //searchコンポーネント（子コンポーネント）から返却された写真データを取得するメソッド
-        async fetchSearchPhoto(searchItems) {
-            this.photos = searchItems
-            //写真撮影者が退会している写真は除外する
-            this.photos = this.photos.filter((photo) => {
-                return photo.owner !== null
-            })
-            //分割データを初期化して,あらためて取得しデータを分割し直す
-            await this.$refs.MoreView.reset()
-            this.$refs.MoreView.load()
-        },
-        //写真一覧データを分割するコンポーネントから返却された分割データを取得するメソッド
-        loadMoreView(viewItems) {
-            this.viewPhotos = viewItems
-        },
-        //fetchTagPhotosの後、写真データが存在する時だけtag名を表示する（=urlの直接入力対策）
-        searchTag() {
-            if (this.searchFlg === 'hit') {
-                return this.photoTag
-            }
-        },
-        //photo（子コンポーネント）から渡ってくる値からLikeをつけるのか外すのか判定するメソッド
-        async onLikeClick({ id, liked, self }) {
-            this.completionID = ''
-            if (!this.$store.getters['auth/check']) {
-                await this.$store.commit('message/setAlert', {
-                    message: 'いいね機能を使うにはログインしてください',
-                    timeout: 3000
+    set(newValue) {
+        return store.commit('search/setAllPhotos', newValue)
+    }
+})
+// タグ指定があった場合、全写真から絞り込み検索をするメソッド
+const fetchTagPhotos = async () => {
+    if (props.photoTag === '') {
+        return false
+    }
+    if (props.photoTag !== '') {
+        store.commit(
+            'search/setAllPhotos',
+            allPhotos.value.filter((photo) => {
+                return photo.tags.some((tag) => {
+                    return tag.name === props.photoTag
                 })
-                this.completionID = id
-                return false
-            }
-            if (self) {
-                await this.$store.commit('message/setAlert', {
-                    message: 'ご自身の写真にいいね機能は使えません',
-                    timeout: 3000
-                })
-                this.completionID = id
-                return false
-            }
-            if (liked) {
-                this.unlike(id)
-            } else {
-                this.like(id)
-            }
-        },
-        //Likeをつけるメソッド
-        async like(id) {
-            //いいね登録APIと通信
-            const response = await request.put(`/api/photos/${id}/like`)
-            //処理エラーとなったら
-            if (response.status !== OK) {
-                //処理終了（中止）IDを子コンポーネントに渡す
-                this.completionID = id
-                //エラーコードを登録
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            //photo全てに対してidをkeyにmap(繰り返し更新）処理
-            this.photos = this.photos.map((photo) => {
-                if (photo.id === response.data.photo_id) {
-                    //responseで返ってきた該当photo(id)だった場合にlikesカウントをプラス１
-                    photo.likes_count += 1
-                    photo.liked_by_user = true
-                    //処理完了IDを子コンポーネントに渡す
-                    this.completionID = response.data.photo_id
-                }
-                return photo
             })
-        },
-        //likeを外すメソッド
-        async unlike(id) {
-            const response = await request.delete(`/api/photos/${id}/like`)
-            if (response.status !== OK) {
-                //処理終了（中止）IDを子コンポーネントに渡す
-                this.completionID = id
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            this.photos = this.photos.map((photo) => {
-                if (photo.id === response.data.photo_id) {
-                    photo.likes_count -= 1
-                    photo.liked_by_user = false
-                    //処理完了IDを子コンポーネントに渡す
-                    this.completionID = response.data.photo_id
-                }
-                return photo
-            })
-        }
-    },
-    watch: {
-        //$routeオブジェクトを監視して、変化を察知したら(=遷移やリロード)
-        $route: {
-            async handler() {
-                //DBから写真一覧データを取得
-                await this.$store.dispatch('search/fetchAllPhotos')
-                //tagの入力があった場合は取得した写真を一覧をフロントエンドでさらに絞り込む
-                await this.fetchTagPhotos()
-                //searchコンポーネント（子コンポーネント）の関数を呼び出して検索ワードで絞り込む
-                await this.$refs.searchPhotos.searchPhotos()
-                //moreviewコンポーネント（子コンポーネント）の関数を呼び出して一度に表示する個数に写真データを分割する
-                await this.$refs.MoreView.load()
-            },
-            immediate: true
-        },
-        //検索flgがinitになった際は(=ロゴクリックされた際は)
-        async searchFlg(newValue) {
-            if (newValue === 'init') {
-                // DBからデータ取得して全データを表示
-                await this.$store.dispatch('search/fetchAllPhotos')
-                await this.$refs.searchPhotos.searchPhotos()
-                this.$refs.MoreView.reset()
-                this.$refs.MoreView.load()
-            }
-        }
+        )
+    }
+    // 絞り込み検索の結果,データがなかった場合（=urlの直接入力時）検索結果flgをnoneにして、TOP画面へリダイレクト
+    if (allPhotos.value.length === 0) {
+        store.commit('search/setFlg', 'none')
+        router.push('/')
     }
 }
+
+//searchコンポーネント（子コンポーネント）から返却された写真データを取得するメソッド
+const fetchSearchPhoto = async (searchItems) => {
+    photos.value = searchItems
+    //写真撮影者が退会している写真は除外する
+    photos.value = photos.value.filter((photo) => {
+        return photo.owner !== null
+    })
+    //分割データを初期化して,あらためて取得しデータを分割し直す
+    await MoreView.value.reset()
+    MoreView.value.load()
+}
+//写真一覧データを分割するコンポーネントから返却された分割データを取得するメソッド
+const loadMoreView = (viewItems) => {
+    viewPhotos.value = viewItems
+}
+//fetchTagPhotosの後、写真データが存在する時だけtag名を表示する（=urlの直接入力対策）
+const searchTag = () => {
+    if (searchFlg.value === 'hit') {
+        return props.photoTag
+    }
+}
+//$routeオブジェクトを監視して、変化を察知したら(=遷移やリロード)
+watch(
+    route,
+    async () => {
+        //DBから写真一覧データを取得
+        await store.dispatch('search/fetchAllPhotos')
+        //tagの入力があった場合は取得した写真を一覧をフロントエンドでさらに絞り込む
+        await fetchTagPhotos()
+        //searchコンポーネント（子コンポーネント）の関数を呼び出して検索ワードで絞り込む
+        if (searchPhotos.value) {
+            await searchPhotos.value.searchPhotos()
+            //moreviewコンポーネント（子コンポーネント）の関数を呼び出して一度に表示する個数に写真データを分割する
+            MoreView.value.load()
+        }
+    },
+    { immediate: true }
+)
+//検索flgがinitになった際は(=ロゴクリックされた際は)
+
+watch(searchFlg, async (newValue) => {
+    if (newValue === 'init') {
+        // DBからデータ取得して全データを表示
+        await store.dispatch('search/fetchAllPhotos')
+        if (searchPhotos.value) {
+            await searchPhotos.value.searchPhotos()
+
+            MoreView.value.reset()
+            MoreView.value.load()
+        }
+    }
+})
 </script>

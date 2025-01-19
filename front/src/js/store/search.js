@@ -35,7 +35,9 @@ export default {
             const response = await request.get(`/api/photos`)
             //接続失敗の場合はエラーコードを取得・表示
             if (response.status !== OK) {
-                context.commit('error/setCode', response.status)
+                context.commit('error/setCode', response.status, {
+                    root: true
+                })
                 return false
             }
             context.commit('setAllPhotos', response.data)

@@ -22,14 +22,14 @@
                 <div class="p-form__input">
                     <i class="fa-regular fa-envelope p-form__input-icon"></i>
                     <input
-                        v-model="loginForm.email"
+                        v-model="Form.email"
                         type="mail"
                         placeholder="メール"
                         class="c-input c-input--form"
                     />
                     <div class="p-form__error">
-                        <label v-show="loginValidation.email" class="p-form__error-message">{{
-                            loginValidation.email
+                        <label v-show="formValidation.email" class="p-form__error-message">{{
+                            formValidation.email
                         }}</label>
                     </div>
                 </div>
@@ -37,35 +37,39 @@
                 <div class="p-form__input">
                     <i class="fa-solid fa-key p-form__input-icon"></i>
                     <input
-                        v-model="loginForm.password"
+                        v-model="Form.password"
                         type="password"
                         autocomplete="off"
                         placeholder="パスワード"
                         class="c-input c-input--form"
                     />
                     <div class="p-form__error">
-                        <div v-if="loginErrors && loginErrors.email" class="p-form__error-message">
-                            <label v-for="msg in loginErrors.email" :key="msg">
+                        <div v-if="Errors && Errors.email" class="p-form__error-message">
+                            <label v-for="msg in Errors.email" :key="msg">
                                 {{ msg }}
                             </label>
                         </div>
-                        <div
-                            v-if="loginErrors && loginErrors.password"
-                            class="p-form__error-message"
-                        >
-                            <label v-for="msg in loginErrors.password" :key="msg">
+                        <div v-if="Errors && Errors.password" class="p-form__error-message">
+                            <label v-for="msg in Errors.password" :key="msg">
                                 {{ msg }}
                             </label>
                         </div>
-                        <label v-show="loginValidation.password" class="p-form__error-message">{{
-                            loginValidation.password
+                        <label v-show="formValidation.password" class="p-form__error-message">{{
+                            formValidation.password
                         }}</label>
                     </div>
                 </div>
                 <button
                     type="button"
                     :disabled="isLoaderFlg"
-                    v-show="loginForm.email && loginForm.password"
+                    v-show="
+                        Form.email &&
+                        Form.password &&
+                        !formValidation.email &&
+                        !formValidation.password &&
+                        !Errors.email &&
+                        !Errors.password
+                    "
                     @click.prevent="login"
                     title="ログイン"
                     class="p-form__button c-button c-button--form"
@@ -74,7 +78,14 @@
                 </button>
                 <button
                     type="button"
-                    v-show="!loginForm.email || !loginForm.password"
+                    v-show="
+                        !Form.email ||
+                        !Form.password ||
+                        formValidation.email ||
+                        formValidation.password ||
+                        Errors.email ||
+                        Errors.password
+                    "
                     class="p-form__button c-button c-button--form c-button--disabled"
                 >
                     Inputting...
@@ -83,27 +94,24 @@
             <!-- 会員登録フォーム -->
             <form @submit.prevent class="p-form p-form--user" v-show="formFlg === 'register'">
                 <div class="p-form__label">
-                    <strong>Name </strong> <small>&nbsp;※30文字以内</small>
+                    <strong>Name </strong> <small>&nbsp;※{{ nameMax }}文字以内</small>
                 </div>
                 <div class="p-form__input">
                     <i class="fa-regular fa-circle-user p-form__input-icon"></i>
                     <input
-                        v-model="registerForm.name"
+                        v-model="Form.name"
                         type="text"
                         placeholder="お名前"
                         class="c-input c-input--form"
                     />
                     <div class="p-form__error">
-                        <div
-                            v-if="registerErrors && registerErrors.name"
-                            class="p-form__error-message"
-                        >
-                            <label v-for="msg in registerErrors.name" :key="msg">
+                        <div v-if="Errors && Errors.name" class="p-form__error-message">
+                            <label v-for="msg in Errors.name" :key="msg">
                                 {{ msg }}
                             </label>
                         </div>
-                        <label v-show="registerValidation.name" class="p-form__error-message">{{
-                            registerValidation.name
+                        <label v-show="formValidation.name" class="p-form__error-message">{{
+                            formValidation.name
                         }}</label>
                     </div>
                 </div>
@@ -111,32 +119,34 @@
                     <strong>Username </strong><br />
                     <small
                         >写真やコメント投稿時に公開される名前です
-                        <br class="c-br c-br--sp-tab" />※15文字以内</small
+                        <br class="c-br c-br--sp-tab" />※{{ nickNameMax }}文字以内</small
                     >
                 </div>
                 <div class="p-form__input">
                     <i class="fa-solid fa-user-tag p-form__input-icon"></i>
                     <input
-                        v-model="registerForm.nickname"
+                        v-model="Form.nickname"
                         type="text"
                         placeholder="ユーザーネーム"
                         class="c-input c-input--form"
                     />
                     <div class="p-form__error">
-                        <div
-                            class="p-form__error-message"
-                            v-if="registerErrors && registerErrors.nickname"
-                        >
-                            <label v-for="msg in registerErrors.nickname" :key="msg">
+                        <label v-if="candidateName.name" class="p-form__error-message">
+                            ユーザーネームのご提案：{{ candidateName.name }}
+                        </label>
+                        <div v-if="Errors && Errors.nickname">
+                            <label
+                                class="p-form__error-message"
+                                v-for="msg in Errors.nickname"
+                                :key="msg"
+                            >
                                 {{ msg }} &nbsp;
                             </label>
                             <br class="c-br c-br--sp-tab" />
-                            <label v-if="candidateName">
-                                ユーザーネームのご提案：{{ candidateName }}
-                            </label>
                         </div>
-                        <label v-show="registerValidation.nickname" class="p-form__error-message">{{
-                            registerValidation.nickname
+
+                        <label v-show="formValidation.nickname" class="p-form__error-message">{{
+                            formValidation.nickname
                         }}</label>
                     </div>
                 </div>
@@ -144,48 +154,43 @@
                 <div class="p-form__input">
                     <i class="fa-regular fa-envelope p-form__input-icon"></i>
                     <input
-                        v-model="registerForm.email"
+                        v-model="Form.email"
                         type="mail"
                         placeholder="メール"
                         class="c-input c-input--form"
                     />
                     <div class="p-form__error">
-                        <div
-                            v-if="registerErrors && registerErrors.email"
-                            class="p-form__error-message"
-                        >
-                            <label v-for="msg in registerErrors.email" :key="msg">
+                        <div v-if="Errors && Errors.email" class="p-form__error-message">
+                            <label v-for="msg in Errors.email" :key="msg">
                                 {{ msg }}
                             </label>
                         </div>
-                        <label v-show="registerValidation.email" class="p-form__error-message">{{
-                            registerValidation.email
+                        <label v-show="formValidation.email" class="p-form__error-message">{{
+                            formValidation.email
                         }}</label>
                     </div>
                 </div>
                 <div class="p-form__label">
-                    <strong>Password&nbsp;</strong><small> ※8文字以上50文字以内 </small>
+                    <strong>Password&nbsp;</strong
+                    ><small> ※{{ passwordMin }}文字以上{{ passwordMax }}文字以内 </small>
                 </div>
                 <div class="p-form__input">
                     <i class="fa-solid fa-key p-form__input-icon"></i>
                     <input
-                        v-model="registerForm.password"
+                        v-model="Form.password"
                         autocomplete="off"
                         type="password"
                         placeholder="パスワード"
                         class="c-input c-input--form"
                     />
                     <div class="p-form__error">
-                        <div
-                            v-if="registerErrors && registerErrors.password"
-                            class="p-form__error-message"
-                        >
-                            <label v-for="msg in registerErrors.password" :key="msg">
+                        <div v-if="Errors && Errors.password" class="p-form__error-message">
+                            <label v-for="msg in Errors.password" :key="msg">
                                 {{ msg }}
                             </label>
                         </div>
-                        <label v-show="registerValidation.password" class="p-form__error-message">{{
-                            registerValidation.password
+                        <label v-show="formValidation.password" class="p-form__error-message">{{
+                            formValidation.password
                         }}</label>
                     </div>
                 </div>
@@ -195,7 +200,7 @@
                 <div class="p-form__input">
                     <i class="fa-solid fa-key p-form__input-icon"></i>
                     <input
-                        v-model="registerForm.password_confirmation"
+                        v-model="Form.password_confirmation"
                         type="password"
                         autocomplete="off"
                         placeholder="パスワード再入力"
@@ -203,9 +208,9 @@
                     />
                     <div class="p-form__error">
                         <label
-                            v-show="registerValidation.password_confirmation"
+                            v-show="formValidation.password_confirmation"
                             class="p-form__error-message"
-                            >{{ registerValidation.password_confirmation }}</label
+                            >{{ formValidation.password_confirmation }}</label
                         >
                     </div>
                 </div>
@@ -215,11 +220,21 @@
                     type="button"
                     :disabled="isLoaderFlg"
                     v-show="
-                        registerForm.name &&
-                        registerForm.nickname &&
-                        registerForm.email &&
-                        registerForm.password &&
-                        registerForm.password_confirmation
+                        Form.name &&
+                        Form.nickname &&
+                        Form.email &&
+                        Form.password &&
+                        Form.password_confirmation &&
+                        !formValidation.name &&
+                        !formValidation.nickname &&
+                        !formValidation.email &&
+                        !formValidation.password &&
+                        !formValidation.password_confirmation &&
+                        !Errors.name &&
+                        !Errors.nickname &&
+                        !Errors.email &&
+                        !Errors.password &&
+                        !Errors.password_confirmation
                     "
                     @click.prevent="register"
                     class="c-button c-button--form p-form__button"
@@ -229,11 +244,21 @@
                 <button
                     type="button"
                     v-show="
-                        !registerForm.name ||
-                        !registerForm.nickname ||
-                        !registerForm.email ||
-                        !registerForm.password ||
-                        !registerForm.password_confirmation
+                        !Form.name ||
+                        !Form.nickname ||
+                        !Form.email ||
+                        !Form.password ||
+                        !Form.password_confirmation ||
+                        formValidation.name ||
+                        formValidation.nickname ||
+                        formValidation.email ||
+                        formValidation.password ||
+                        formValidation.password_confirmation ||
+                        Errors.name ||
+                        Errors.nickname ||
+                        Errors.email ||
+                        Errors.password ||
+                        Errors.password_confirmation
                     "
                     class="p-form__button c-button c-button--form c-button--disabled"
                 >
@@ -244,198 +269,93 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { watch } from 'vue'
+import { useStore } from 'vuex'
 import CautionaryNote from '../components/CautionaryNote.vue'
-export default {
-    components: {
-        CautionaryNote
-    },
-    data() {
-        return {
-            formFlg: 'user',
-            loginForm: {
-                email: '',
-                password: ''
-            },
-            registerForm: {
-                name: '',
-                nickname: '',
-                email: '',
-                password: '',
-                password_confirmation: ''
-            },
-            loginValidation: {
-                email: '',
-                password: ''
-            },
-            registerValidation: {
-                name: '',
-                nickname: '',
-                email: '',
-                password: '',
-                password_confirmation: ''
-            },
-            candidateName: ''
-        }
-    },
-    computed: {
-        apiStatus() {
-            return this.$store.state.auth.apiStatus
-        },
-        isLoaderFlg() {
-            return this.$store.state.loader.loaderFlg
-        },
-        loginErrors() {
-            return this.$store.state.auth.loginErrorMessage
-        },
-        registerErrors() {
-            return this.$store.state.auth.registerErrorMessage
-        }
-    },
-    methods: {
-        chengeLoginForm() {
-            this.formFlg = 'login'
-        },
-        chengeRegisterForm() {
-            this.formFlg = 'register'
-        },
-        //ログインメソッド
-        async login() {
-            //エラーメッセージを空にする
-            this.clearError()
-            //バリデーション
-            const mailPattern = /^[A-Za-z0-9]{1}[A-Za-z0-9_.-]*@{1}[A-Za-z0-9_.-]+.[A-Za-z0-9]+$/
-            if (!mailPattern.test(this.loginForm.email)) {
-                this.loginValidation.email = '有効なメールアドレスを入力してください。'
-                return false
-            } else {
-                this.loginValidation.email = ''
-            }
-            if (this.loginForm.password.length < 8 || this.loginForm.password.length > 50) {
-                this.loginValidation.password = 'ログイン情報が存在しません。'
-                return false
-            } else {
-                this.loginValidation.password = ''
-            }
-            //バリデーションチェックを通過したら
-            //loader画面を呼び出す
-            await this.$store.dispatch('loader/showLoader', 'login...')
-            //loginAPIを呼び出す
-            await this.$store.dispatch('auth/login', this.loginForm)
-            //通信終了後loader画面を閉じる
-            await this.$store.dispatch('loader/closeLoader')
-            //loginメソッドが成功したら
-            if (this.apiStatus) {
-                //    TOPページへリダイレクト
-                this.$router.push('/')
-            }
-        },
-        //新規登録メソッド
-        async register() {
-            //エラーメッセージを空にする
-            this.clearError()
-            //バリデーション
-            const mailPattern = /^[A-Za-z0-9]{1}[A-Za-z0-9_.-]*@{1}[A-Za-z0-9_.-]+.[A-Za-z0-9]+$/
-            if (this.registerForm.name.length > 30) {
-                this.registerValidation.name = '登録文字数上限を超えています。'
-            } else {
-                this.registerValidation.name = ''
-            }
+import { useRouter } from 'vue-router'
+import { useAuth } from '../methods/UseAuth'
+import { useForm } from '../methods/UseForm'
 
-            if (this.registerForm.nickname.length > 15) {
-                this.registerValidation.nickname = '登録文字数上限を超えています。'
-            } else {
-                this.registerValidation.nickname = ''
-            }
+const store = useStore()
+const router = useRouter()
+const { authReset, apiStatusFlg, Errors } = useAuth()
+const {
+    isLoaderFlg,
+    Form,
+    WatchNickname,
+    candidateName,
+    Validate,
+    formValidation,
+    ValidationFlg,
+    formFlg,
+    CreateForm,
+    nameMax,
+    nickNameMax,
+    passwordMax,
+    passwordMin
+} = useForm()
 
-            if (!mailPattern.test(this.registerForm.email)) {
-                this.registerValidation.email = '有効なメールアドレスを入力してください。'
-            } else {
-                this.registerValidation.email = ''
-            }
-            if (this.registerForm.password.length < 8 || this.registerForm.password.length > 50) {
-                this.registerValidation.password = '登録可能文字数は8〜50文字です。'
-            } else {
-                this.registerValidation.password = ''
-            }
-
-            if (this.registerForm.password !== this.registerForm.password_confirmation) {
-                this.registerValidation.password_confirmation =
-                    'パスワードが再入力と一致していません。'
-            } else {
-                this.registerValidation.password_confirmation = ''
-            }
-            if (
-                this.registerValidation.name ||
-                this.registerValidation.nickname ||
-                this.registerValidation.email ||
-                this.registerValidation.password ||
-                this.registerValidation.password_confirmation
-            ) {
-                return false
-            }
-
-            //バリデーションチェックを通過したら
-            //loader画面を呼び出す
-            await this.$store.dispatch('loader/showLoader', 'registering..')
-            //registerAPIを呼び出す
-            await this.$store.dispatch('auth/register', this.registerForm)
-            //通信終了後loader画面を終了させる
-            await this.$store.dispatch('loader/closeLoader')
-            // 登録成功したら
-            if (this.apiStatus) {
-                //TOPページへリダイレクト
-                this.$router.push('/')
-            }
-        },
-        //エラーメッセージを空にするメソッド
-        clearError() {
-            this.loginValidation.email = ''
-            this.loginValidation.password = ''
-            this.registerValidation.name = ''
-            this.registerValidation.nickname = ''
-            this.registerValidation.email = ''
-            this.registerValidation.password = ''
-            this.registerValidation.password_confirmation = ''
-            this.$store.dispatch('auth/allErrorMessageClear')
-            this.candidateName = ''
-        },
-        //ユーザー名の候補を生成するメソッド
-        createdNickname() {
-            if (this.registerForm.nickname.length < 3) {
-                this.candidateName = this.registerForm.nickname.concat(
-                    new Date().getTime().toString()
-                )
-            } else {
-                this.candidateName = this.registerForm.nickname
-                    .slice(0, 2)
-                    .concat(new Date().getTime().toString())
-            }
-        }
-    },
-    created() {
-        //ページアクセス時はloginフォームを表示
-        this.formFlg = 'login'
-        this.clearError()
-    },
-    watch: {
-        //ユーザー名の重複エラー発生時は候補名を表示する
-        'registerErrors.nickname': function (newValue) {
-            if (newValue !== '') {
-                this.createdNickname()
-            }
-        },
-        //login・registerフォームを切り替えた時は入力値・エラーメッセージを初期化する
-        formFlg() {
-            this.clearError()
-            this.loginForm.email = ''
-            this.loginForm.password = ''
-            this.registerForm.name = ''
-            this.registerForm.nickname = ''
-            this.registerForm.email = ''
-            this.registerForm.password = ''
-            this.registerForm.password_confirmation = ''
+const chengeLoginForm = () => {
+    formFlg.value = 'login'
+}
+const chengeRegisterForm = () => {
+    formFlg.value = 'register'
+}
+//ログインメソッド
+const login = async () => {
+    //エラーメッセージを空にしてからバリデーション
+    Validate()
+    //バリデーションチェックを通過しなじゃったら処理中止
+    if (!ValidationFlg.value) {
+        return false
+    } else {
+        //loader画面を呼び出す
+        store.dispatch('loader/showLoader', 'login...')
+        //loginAPIを呼び出す
+        await store.dispatch('auth/login', Form.value)
+        //通信終了後loader画面を閉じる
+        store.dispatch('loader/closeLoader')
+        //loginメソッドが成功したら
+        if (apiStatusFlg.value) {
+            //    TOPページへリダイレクト
+            router.push('/')
         }
     }
 }
+//新規登録メソッド
+const register = async () => {
+    //エラーメッセージを空にしてからバリデーション
+    Validate()
+    //バリデーションチェックを通過したら
+    if (!ValidationFlg.value) {
+        return false
+    } else {
+        //loader画面を呼び出す
+        store.dispatch('loader/showLoader', 'registering..')
+        //registerAPIを呼び出す
+        await store.dispatch('auth/register', Form.value)
+        //通信終了後loader画面を終了させる
+        store.dispatch('loader/closeLoader')
+        // 登録成功したら
+        if (apiStatusFlg.value) {
+            //TOPページへリダイレクト
+            router.push('/')
+        }
+    }
+}
+
+//ページアクセス時はloginフォームを表示
+;(() => {
+    formFlg.value = 'login'
+    authReset(candidateName.value)
+    CreateForm()
+    WatchNickname()
+})()
+
+//login・registerフォームを切り替えた時は入力値・エラーメッセージを初期化する
+watch(formFlg, () => {
+    authReset(candidateName.value)
+    CreateForm()
+})
 </script>

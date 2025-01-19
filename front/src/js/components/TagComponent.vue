@@ -6,7 +6,7 @@
                     <router-link
                         v-show="!editTagFlg"
                         tite="tag"
-                        :to="`/photolist/${tag.name}`"
+                        :to="{name: 'photolist', query:{photoTag:`${tag.name}`}}"
                         class="c-button c-button--tag"
                     >
                         <span class="c-button__text"
@@ -47,7 +47,7 @@
             <div class="p-form__input">
                 <i class="fa-solid fa-tags p-form__input-icon"></i>
                 <input
-                    v-model="newTags"
+                    v-model="newTags.content"
                     type="text"
                     title="最大５個まで登録可能"
                     placeholder="タグ ※合計５個まで"
@@ -57,10 +57,10 @@
             <button
                 type="button"
                 v-show="
-                    !newTags ||
-                    validationDuplication ||
-                    validationNewPieces ||
-                    validationWordCount ||
+                    !newTags.content ||
+                    tagValidation.duplication ||
+                    tagValidation.newPieces ||
+                    tagValidation.wordCount ||
                     !checkTagValidationFlg ||
                     saveTagFlg
                 "
@@ -73,10 +73,10 @@
                 type="button"
                 v-show="
                     !(
-                        !newTags ||
-                        validationDuplication ||
-                        validationNewPieces ||
-                        validationWordCount ||
+                        !newTags.content ||
+                        tagValidation.duplication ||
+                        tagValidation.newPieces ||
+                        tagValidation.wordCount ||
                         !checkTagValidationFlg ||
                         saveTagFlg
                     )
@@ -89,11 +89,11 @@
                 put tags on
             </button>
             <div class="p-form__error p-form__error--tags p-form__error-message">
-                <span v-show="validationDuplication">{{ validationDuplication }}</span>
-                <span v-show="validationNewPieces">{{ validationNewPieces }}<br /></span>
-                <span v-show="validationWordCount">{{ validationWordCount }}</span>
-                <div v-if="tagErrors && tagErrors.name" class="p-form__error-message">
-                    <label v-for="msg in tagErrors.name" :key="msg">
+                <span v-show="tagValidation.duplication">{{ tagValidation.duplication }}</span>
+                <span v-show="tagValidation.newPieces">{{ tagValidation.newPieces }}<br /></span>
+                <span v-show="tagValidation.wordCount">{{ tagValidation.wordCount }}</span>
+                <div v-if="tagErrors && tagErrors.tags" class="p-form__error-message">
+                    <label v-for="msg in tagErrors.tags" :key="msg">
                         {{ msg }}
                     </label>
                 </div>
@@ -120,184 +120,132 @@
         </button>
     </div>
 </template>
-<script>
+<script setup>
 import { OK, CREATED, UNPROCESSABLE_ENTITY } from '../util'
 import { request } from '../bootstrap'
 import LoaderComponent from './LoaderComponent.vue'
+import { useStore } from 'vuex'
+import { watch, ref, computed } from 'vue'
+import { useForm } from '../methods/UseForm'
+import { useTag } from '../methods/UseTag'
 
-export default {
-    components: {
-        LoaderComponent
-    },
-    props: {
-        //photodetail(親コンポーネント）から渡される写真(１枚)データ
-        photoData: {
-            type: Object,
-            requierd: true
-        }
-    },
-    data() {
-        return {
-            newTags: '', //フォームの入力値
-            tagErrors: '',
-            editTagFlg: false, //編集フォームのon・off
-            saveTagFlg: false, //TagAPIの通信状態
-            checkTagValidationFlg: false, //バリデーションのon・off
-            validationOldPieces: '',
-            validationDuplication: '',
-            validationNewPieces: '',
-            validationWordCount: ''
-        }
-    },
-    computed: {
-        //ログイン中かを表すFlg
-        isLogin() {
-            return this.$store.getters['auth/check']
-        },
-        //親コンポーネントから受け取る写真（１枚）データ
-        photo() {
-            return this.photoData
-        },
-        //写真データに紐付け済みのTags
-        fetchOldTags() {
-            //紐付けされたTagがない場合は空文字を返却
-            if (!this.photo.tags) {
-                return ''
-            }
-            //紐付けされたTagを一つずつ string型に変換して配列を新たに生成
-            return this.photo.tags.map((tag) => {
-                return tag.name.toString()
-            })
-        }
-    },
-    methods: {
-        //TagをDBに登録するメソッド
-        async addTags() {
-            this.saveTagFlg = true
-            this.editTagFlg = false
-            const response = await request.patch(`/api/photos/${this.photo.id}/tags`, {
-                name: this.newTags
-            })
-            this.saveTagFlg = false
-            if (response.status === UNPROCESSABLE_ENTITY) {
-                this.editTagFlg = true
-                this.tagErrors = response.data.errors
-                return false
-            }
-            if (response.status !== CREATED) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            //登録成功したらサーバからresponsされるtagデータを表示用変数photo.tagに代入
-            this.photo.tags = response.data.tags
-            //フォームを初期化して処理終了
-            this.resetTagInput()
-        },
-        //Tag数をバリデーションするメソッド
-        countOldTags() {
-            if (this.photo.tags.length === 5) {
-                this.validationOldPieces = '登録できるタグは５個までです'
-                //編集処理中止(フォームのバリデーション非活性)
-                this.checkTagValidationFlg = false
-            } else {
-                this.validationOldPieces = ''
-                //フォームのバリデーション活性
-                this.checkTagValidationFlg = true
-            }
-        },
-        //編集時に入力値inputと既に登録済みTagを連結させてバリデーションするメソッド
-        tagValidation(input) {
-            let oldTags = [] //登録済みのTag
-            if (!this.photo.tags) {
-                oldTags = []
-            } else {
-                oldTags = this.photo.tags.map((tag) => {
-                    return tag.name.toString()
-                })
-            }
-            //フォームの入力文字列inputをスペースで区切り、配列inputWordsに変換
-            let inputWords = input.trim().split(/\s+/)
-            //新規登録tagと登録済みtagを連結、要素から空白を取り除いて配列tagWordsにする
-            let tagWords = oldTags.concat(inputWords).filter((word) => {
-                return !(word === null || word === undefined || word === '')
-            })
-            //重複入力を取り除く
-            tagWords = [...new Set(tagWords)]
-            //バリデーション
-            if (oldTags !== '' && tagWords.length === oldTags.length && input !== '') {
-                this.validationDuplication = '既に登録済みのタグです'
-            } else {
-                this.validationDuplication = ''
-            }
-            if (tagWords.length > 5) {
-                this.validationNewPieces = '登録できるタグは５個までです'
-            } else {
-                this.validationNewPieces = ''
-            }
-            if (
-                tagWords.find((word) => {
-                    return word.length > 10
-                })
-            ) {
-                this.validationWordCount = '1タグの最大文字数は10文字です'
-            } else {
-                this.validationWordCount = ''
-            }
-        },
-        //Tagの紐付けを解除するメソッド
-        async deleteTag(tagName) {
-            this.saveTagFlg = true
-            const response = await request.delete(`/api/photos/${this.photo.id}/tags/${tagName}`)
-            this.saveTagFlg = false
-            if (response.status !== OK) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            //APIから登録成功のresponseが届いたら、表示中のtagを格納しているphoto.tagsから消去した要素(tag名)を除去する
-            this.photo.tags = this.photo.tags.filter((elem) => !(elem.name === tagName))
-            this.validationOldPieces = ''
-            this.tagValidation(this.newTags, this.photo.tags)
-        },
-        //編集終了（中止）時、入力値とバリデーションメッセージを空にする関数
-        resetTagInput() {
-            this.newTags = ''
-            this.validationDuplication = ''
-            this.validationNewPieces = ''
-            this.validationWordCount = ''
-        }
-    },
-    watch: {
-        //編集するボタンが押されるかを監視
-        editTagFlg(newValue) {
-            if (newValue === true) {
-                //登録済みTag数をバリデーションする
-                this.countOldTags()
-            } else {
-                // 編集終了(中止）したら入力とバリデーションメッセージを空にする
-                this.resetTagInput()
-            }
-        },
-        //フォームに入力されるかを監視
-        newTags(newValue) {
-            //文字入力があった時はバリデーションを開始
-            if (newValue.match(/\S/g) && newValue !== '') {
-                this.checkTagValidationFlg = true
-                this.tagValidation(newValue, this.fetchOldTags)
-            } else {
-                this.checkTagValidationFlg = false
-                this.validationDuplication = ''
-            }
-        },
-        //photoデータの変更を監視
-        photo(newValue, oldValue) {
-            //photo.IDが変わった（＝別の写真の詳細ページへ遷移した）ときはフォームを閉じる(input内容をリセットする)
-            if (newValue.id !== oldValue.id) {
-                this.editTagFlg = false
-            } else {
-                //それ以外(=photo.tagを更新した時)はバリデーションの引数を入れ直してバリデーションを行う
-                this.tagValidation(this.newTags, this.photo.tags)
-            }
-        }
+const store = useStore()
+const form = useForm()
+const { tagValidation, tagValidate, verifiedWord } = useTag()
+const props = defineProps({
+    //photodetail(親コンポーネント）から渡される写真(１枚)データ
+    photoData: {
+        type: Object,
+        requierd: true
+    }
+})
+
+const newTags = ref({ content: '' }) //フォームの入力値
+const tagErrors = ref('')
+const editTagFlg = ref(false) //編集フォームのon・off
+const saveTagFlg = ref(false) //TagAPIの通信状態
+const checkTagValidationFlg = ref(false) //バリデーションのon・off
+const validationOldPieces = ref('')
+
+//親コンポーネントから受け取る写真（１枚）データ
+const photo = computed(() => {
+    return props.photoData
+})
+//写真データに紐付け済みのTags
+const fetchOldTags = computed(() => {
+    //紐付けされたTagがない場合は空文字を返却
+    if (!photo.value.tags) {
+        return ''
+    }
+    //紐付けされたTagを一つずつ string型に変換して配列を新たに生成
+    return photo.value.tags.map((tag) => {
+        return tag.name.toString()
+    })
+})
+
+//TagをDBに登録するメソッド
+const addTags = async () => {
+    saveTagFlg.value = true
+    editTagFlg.value = false
+    const response = await request.patch(`/api/photos/${photo.value.id}/tags`, {
+        tags: verifiedWord.content
+    })
+    saveTagFlg.value = false
+    if (response.status === UNPROCESSABLE_ENTITY) {
+        editTagFlg.value = true
+        tagErrors.value = response.data.errors
+        return false
+    }
+    if (response.status !== CREATED) {
+        store.commit('error/setCode', response.status)
+        return false
+    }
+    //登録成功したらサーバからresponseされるtagデータを表示用変数photo.tagに代入
+    photo.value.tags = response.data.tags
+    //フォームを初期化して処理終了
+    form.reset(newTags.value, tagValidation.value, tagErrors.value, verifiedWord)
+}
+//現在登録済みのTag数をバリデーションするメソッド
+const countOldTags = () => {
+    if (fetchOldTags.value.length === 5) {
+        validationOldPieces.value = '登録できるタグは５個までです'
+        //編集処理中止(フォームのバリデーション非活性)
+        checkTagValidationFlg.value = false
+    } else {
+        validationOldPieces.value = ''
+        //フォームのバリデーション活性
+        checkTagValidationFlg.value = true
     }
 }
+//Tagの紐付けを解除するメソッド
+const deleteTag = async (tagName) => {
+    saveTagFlg.value = true
+    const response = await request.delete(`/api/photos/${photo.value.id}/tags/${tagName}`)
+    saveTagFlg.value = false
+    if (response.status !== OK) {
+        store.commit('error/setCode', response.status)
+        return false
+    }
+    //APIから登録成功のresponseが届いたら、表示中のtagを格納しているphoto.tagsから消去した要素(tag名)を除去する
+    photo.value.tags = photo.value.tags.filter((elem) => !(elem.name === tagName))
+    validationOldPieces.value = ''
+    tagValidate(newTags.value.content, fetchOldTags.value)
+}
+
+//編集するボタンが押されるかを監視
+watch(editTagFlg, (newValue) => {
+    if (newValue === true) {
+        //登録済みTag数をバリデーションする
+        countOldTags()
+    } else {
+        // 編集終了(中止）したら入力とバリデーションメッセージを空にする
+        form.reset(newTags.value, tagValidation.value, tagErrors.value)
+    }
+})
+//フォームに入力されるかを監視
+watch(
+    () => newTags.value.content,
+    (newValue) => {
+        //文字入力があった時はバリデーションを開始
+        if (newValue.match(/\S/g) && newValue !== '') {
+            tagErrors.value = ''
+            checkTagValidationFlg.value = true
+            tagValidate(newValue, fetchOldTags.value)
+        } else {
+            checkTagValidationFlg.value = false
+            tagValidation.value.duplication = ''
+            tagErrors.value = ''
+        }
+    }
+)
+//photoデータの変更を監視
+watch(photo, (newValue, oldValue) => {
+    //photo.IDが変わった（＝別の写真の詳細ページへ遷移した）ときはフォームを閉じる(input内容をリセットする)
+    if (newValue.id !== oldValue.id) {
+        editTagFlg.value = false
+    } else {
+        //それ以外(=photo.tagを更新した時)はバリデーションの引数を入れ直してバリデーションを行う
+        tagValidate(newTags.value.content, fetchOldTags.value)
+    }
+})
 </script>

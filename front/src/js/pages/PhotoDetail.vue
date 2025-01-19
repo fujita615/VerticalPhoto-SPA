@@ -49,9 +49,9 @@
                     <!-- いいねボタン -->
                     <button
                         type="button"
-                        @click="onLikeClick"
+                        @click="onClick()"
                         title="Like photo"
-                        class="c-button c-button--photo"
+                        class="c-button c-button--photo c-button--photo-like"
                         :class="{
                             'is-liked': photo.liked_by_user
                         }"
@@ -63,9 +63,9 @@
                                 :class="{
                                     'faa-tada animated': saveLikeFlg
                                 }"
-                            ></i>
-                            {{ photo.likes_count }}</span
-                        >
+                            ></i
+                        ></span>
+                        <span class="c-button__text"> {{ photo.likes_count }}</span>
                     </button>
 
                     <!-- ダウンロードボタン -->
@@ -108,7 +108,7 @@
                             type="button"
                             @click.prevent="deletePhoto"
                             class="c-button c-button--dialog"
-                            :disabled="isdeleteFlg"
+                            :disabled="isLoaderFlg"
                         >
                             写真を完全に削除する
                         </button>
@@ -116,7 +116,7 @@
                             type="button"
                             @click.prevent="close('photoDelete')"
                             class="c-button c-button--edit"
-                            :disabled="isdeleteFlg"
+                            :disabled="isLoaderFlg"
                         >
                             削除を中止
                         </button>
@@ -127,151 +127,124 @@
     </section>
 </template>
 
-<script>
+<script setup>
 import { API_URL, request } from '../bootstrap'
 import { OK } from '../util'
 import CommentComponent from '../components/CommentComponent.vue'
 import TagComponent from '../components/TagComponent.vue'
 import DialogComponent from '../components/DialogComponent.vue'
 import CautionaryNote from '../components/CautionaryNote.vue'
-export default {
-    props: {
-        id: {
-            type: String,
-            required: true
-        }
-    },
-    components: {
-        CommentComponent,
-        TagComponent,
-        DialogComponent,
-        CautionaryNote
-    },
-    data() {
-        return {
-            photo: '',
-            liked_by_user: false,
-            likes_count: 0,
-            modal: {
-                photoDelete: { isShow: false },
-                photoFull: { isShow: false }
-            },
-            saveLikeFlg: false,
-            URL: API_URL
-            // URL:'https://api.yf5160.com'
-        }
-    },
-    computed: {
-        isLogin() {
-            return this.$store.getters['auth/check']
-        },
-        isdeleteFlg() {
-            return this.$store.state.loader.loaderFlg
-        }
-    },
-    methods: {
-        //引数で指定したモーダルを開くメソッド
-        open(modalName) {
-            this.modal[modalName].isShow = true
-        },
-        //引数で指定したモーダルを閉じるメソッド
-        close(modalName) {
-            this.modal[modalName].isShow = false
-        },
-        //IDを指定して写真データを取得するメソッド
-        async fetchPhoto() {
-            const response = await request.get(`/api/photos/${this.id}`)
-            if (response.status !== OK) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            //もし撮影者は既に退会しているのphotoデータだけ残ってしまっていた場合
-            if (!response.data.owner) {
-                this.$router.push('/notfound')
-                return false
-            }
-            this.photo = response.data
-        },
-        //photo（子コンポーネント）から渡ってくる値からLikeをつけるのか外すのか判定するメソッド
-        async onLikeClick() {
-            if (!this.isLogin) {
-                this.$store.commit('message/setAlert', {
-                    message: 'いいね機能を使うにはログインが必要です',
-                    timeout: 3000
-                })
-                return false
-            }
-            if (this.photo.posted_by_user) {
-                this.$store.commit('message/setAlert', {
-                    message: 'ご自身の写真にいいね機能は使えません',
-                    timeout: 3000
-                })
-                return false
-            }
-            if (this.photo.liked_by_user) {
-                this.unlike()
-            } else {
-                this.like()
-            }
-        },
-        //Likeをつけるメソッド
-        async like() {
-            this.saveLikeFlg = true
-            //DBにlikeデータを登録
-            const response = await request.put(`/api/photos/${this.id}/like`)
+import { useStore } from 'vuex'
+import { useRoute, useRouter } from 'vue-router'
+import { ref, watch, computed } from 'vue'
+import { useLike } from '../methods/UseLike'
+import { useForm } from '../methods/UseForm'
+import { useAuth } from '../methods/UseAuth'
 
-            if (response.status !== OK) {
-                this.saveLikeFlg = false
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            // 表示中のphotoのカウントとliked_by_userを更新する
-            this.photo.likes_count += 1
-            this.photo.liked_by_user = true
-            this.saveLikeFlg = false
-        },
-        //Likeを外すメソッド
-        async unlike() {
-            this.saveLikeFlg = true
-            const response = await request.delete(`/api/photos/${this.id}/like`)
+const store = useStore()
+const route = useRoute()
+const router = useRouter()
+const { completionID, onLikeClick } = useLike()
+const { isLoaderFlg } = useForm
+const { isLogin } = useAuth()
+const props = defineProps({
+    id: {
+        type: String,
+        required: true
+    }
+})
+const photo = ref('')
+const photos = computed(() => {
+    return photo.value
+})
+const id = computed(() => {
+    return props.id
+})
+const self = computed(() => {
+    return photo.value.posted_by_user
+})
+const liked = computed(() => {
+    return photo.value.liked_by_user
+})
+const modal = ref({
+    photoDelete: { isShow: false },
+    photoFull: { isShow: false }
+})
+const saveLikeFlg = ref(false)
+const onClick = () => {
+    saveLikeFlg.value = true
+    onLikeClick({
+        id: id.value,
+        liked: liked.value,
+        self: self.value,
+        photos: photos.value
+    })
+}
+const URL = ref(API_URL)
 
-            if (response.status !== OK) {
-                this.saveLikeFlg = false
-                this.$store.commit('error/setCode', response.status)
-                return false
+//引数で指定したモーダルを開くメソッド
+const open = (modalName) => {
+    modal.value[modalName].isShow = true
+}
+//引数で指定したモーダルを閉じるメソッド
+const close = (modalName) => {
+    modal.value[modalName].isShow = false
+}
+//IDを指定して写真データを取得するメソッド
+const fetchPhoto = async () => {
+    const response = await request.get(`/api/photos/${props.id}`)
+    if (response.status !== OK) {
+        store.commit('error/setCode', response.status)
+        return false
+    }
+    //もし撮影者は既に退会しているのphotoデータだけ残ってしまっていた場合
+    if (!response.data.owner) {
+        router.push('/notfound')
+        return false
+    }
+    photo.value = response.data
+}
+
+//写真データを削除するメソッド
+const deletePhoto = async () => {
+    await store.dispatch('loader/showLoader', 'delete a photo...')
+    const response = await request.delete(`/api/photos/${props.id}`)
+    await store.dispatch('loader/closeLoader')
+    if (response.status !== OK) {
+        store.commit('error/setCode', response.status)
+        return false
+    }
+    store.commit('message/setSuccess', {
+        message: '写真を削除しました',
+        timeout: 3000
+    })
+    router.push('/')
+}
+
+// いいねAPI完了の写真のIDの通知を監視
+watch(
+    () => completionID.value,
+    // いいね処理が終わった写真のIDが一致したら いいねAPI通信中flgをfalseにする
+    (newValue) => {
+        if (newValue !== '') {
+            if (saveLikeFlg.value && id.value === newValue) {
+                saveLikeFlg.value = false
             }
-            this.photo.likes_count -= 1
-            this.photo.liked_by_user = false
-            this.saveLikeFlg = false
-        },
-        //写真データを削除するメソッド
-        async deletePhoto() {
-            await this.$store.dispatch('loader/showLoader', 'delete a photo...')
-            const response = await request.delete(`/api/photos/${this.id}`)
-            await this.$store.dispatch('loader/closeLoader')
-            if (response.status !== OK) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            this.$store.commit('message/setSuccess', {
-                message: '写真を削除しました',
-                timeout: 3000
-            })
-            this.$router.push('/')
-        }
-    },
-    watch: {
-        $route: {
-            async handler() {
-                //ページ遷移したら現在ログイン状態か確認する
-                if (this.isLogin) {
-                    await this.$store.dispatch('auth/currentUser')
-                }
-                //あらためてデータを読み込む（キャッシュを再利用しない）
-                this.fetchPhoto()
-            },
-            immediate: true
         }
     }
-}
+)
+//ページ遷移したら現在ログイン状態か確認する
+watch(
+    route,
+    async () => {
+        if (isLogin.value) {
+            await store.dispatch('auth/currentUser')
+        }
+        //あらためてデータを読み込む（キャッシュを再利用しない）
+        fetchPhoto()
+    },
+    {
+        immediate: true
+    }
+)
 </script>

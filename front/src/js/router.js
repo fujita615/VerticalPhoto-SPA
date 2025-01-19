@@ -38,25 +38,19 @@ export const router = createRouter({
             }
         }
     },
+    
     history: createWebHistory(),
     routes: [
         {
             path: '/',
             name: 'index',
             component: PhotoList,
-            beforeEnter: skipWelcomeDialog
-            //pagination
-            // props: route =>
-            // {
-            //     const page = route.query.page
-            //   return { page: /^[1-9][0-9]*$/.test(page) ? page * 1 : 1 }
-            // }
         },
         {
-            path: '/photolist/:photoTag',
+            path: '/photolist',
             name: 'photolist',
             component: PhotoList,
-            props: true
+            props: route => ({photoTag: route.query.photoTag}),
         },
         {
             path: '/login',
@@ -66,7 +60,7 @@ export const router = createRouter({
                 if (store.getters['auth/check']) {
                     next('/')
                 }
-                //もしcookieが無効ならcookieの有効化をお願いするページへ遷移
+                //もしcookieが無効ならcookieの有効化を促すページへ遷移
                 else if (!document.cookie) {
                     next('/nocookie')
                 } else {
@@ -75,9 +69,10 @@ export const router = createRouter({
             }
         },
         {
-            path: '/photos/:id',
+            path: '/photos',
+            name: 'photos',
             component: PhotoDetail,
-            props: true
+            props: route => ({id: route.query.id}),
         },
         {
             path: '/mypage',

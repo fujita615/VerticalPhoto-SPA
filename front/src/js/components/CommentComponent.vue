@@ -15,12 +15,14 @@
         >
             <p class="c-paragraph c-paragraph--comment">{{ comment.content }}</p>
             <p class="c-paragraph__commenter">{{ comment.author.nickname }}</p>
+
             <button
                 v-show="comment.commented_by_author && !loadingFlg"
                 @click="showEditForm"
                 class="c-button c-button--photo"
                 title="edit comment"
                 type="button"
+                :disabled="showEditFormFlg"
             >
                 <span class="c-button__text">編集</span>
             </button>
@@ -40,203 +42,195 @@
     <p v-else>現在コメントはありません</p>
 
     <!-- コメント投稿フォーム -->
-    <div
-        v-show="isLogin && !photo.posted_by_user && !photo.commented_by_user && !loadingFlg"
-        class="p-form"
+    <button
+        @click.self="showEditForm"
+        type="button"
+        title="Finish editing"
+        class="c-button c-button--edit"
+        :disabled="showEditFormFlg"
+        v-show="
+            isLogin &&
+            !showEditFormFlg &&
+            !loadingFlg &&
+            !photo.commented_by_user &&
+            !photo.posted_by_user
+        "
     >
-        <div class="p-form__textarea">
-            <textarea
-                v-model="comment"
-                cols="30"
-                rows="10"
-                placeholder="コメントする！"
-                class="c-textarea c-textarea--comment"
-            >
-            </textarea>
-        </div>
-        <button
-            type="button"
-            v-show="!comment || validation"
-            class="c-button c-button--form c-button--disabled"
-        >
-            Please comment
-        </button>
-        <button
-            type="button"
-            v-show="comment && !validation"
-            @click.prevent="addComment"
-            class="c-button c-button--form"
-            :class="{ 'c-button--disabled': loadingFlg }"
-            :disabled="loadingFlg"
-        >
-            submit comment
-        </button>
-    </div>
+        <i class="fa-regular fa-comment-dots"></i> コメントする !
+    </button>
     <div v-show="showEditFormFlg && !loadingFlg" class="p-form">
         <div class="p-form__textarea">
             <textarea
-                v-model="newComment.content"
+                v-model="Form.content"
                 cols="30"
                 rows="10"
                 placeholder="コメントする！"
+                @input="contentLengthCheck"
+                :maxlength="contentLimit"
                 class="c-textarea c-textarea--comment"
             >
             </textarea>
+            <p class="c-count" :class="{ 'c-count--error': contentLimitFlg }">
+                {{ Form.content.length }}/ {{ contentLimit }}字まで
+            </p>
         </div>
+
         <button
             type="button"
-            v-show="!newComment.content || validation"
+            v-show="!Form.content || formValidation.content"
             class="c-button c-button--form c-button--disabled"
         >
             Please comment
         </button>
         <button
             type="button"
-            v-show="newComment.content && !validation"
+            v-show="Form.content && !formValidation.content"
             @click.prevent="editComment"
             class="c-button c-button--form"
             :class="{ 'c-button--disabled': loadingFlg }"
             :disabled="loadingFlg"
         >
-            update comment
+            Submit a comment
+        </button>
+        <button
+            @click.self="canselEdit"
+            type="button"
+            title="Finish editing"
+            class="c-button c-button--edit"
+        >
+            <i class="fa-solid fa-ban"></i> コメント編集を中止する
         </button>
     </div>
     <div class="p-form__error">
-        <div v-if="commentErrors && commentErrors.content" class="p-form__error-message">
-            <label v-for="msg in commentErrors.content" :key="msg">
+        <div v-if="Errors && Errors.content" class="p-form__error-message">
+            <label v-for="msg in Errors.content" :key="msg">
                 {{ msg }}
             </label>
         </div>
-        <div v-show="validation" class="p-form__error-message">
-            {{ validation }}
+        <div v-show="formValidation.content" class="p-form__error-message">
+            {{ formValidation.content }}
         </div>
     </div>
 </template>
 
-<script>
+<script setup>
 import { OK, CREATED, UNPROCESSABLE_ENTITY } from '../util'
 import { request } from '../bootstrap'
+import { useStore } from 'vuex'
+import { ref, computed } from 'vue'
+import { useForm } from '../methods/UseForm'
+import { useAuth } from '../methods/UseAuth'
 
-export default {
-    props: {
-        photoData: {
-            type: Object,
-            required: true
-        }
-    },
-    data() {
-        return {
-            comment: '',
-            commentErrors: null,
-            validation: '',
-            showEditFormFlg: false,
-            loadingFlg: false,
-            newComment: ''
-        }
-    },
-    computed: {
-        isLogin() {
-            return this.$store.getters['auth/check']
-        },
-        photo() {
-            return this.photoData
-        }
-    },
-    methods: {
-        //コメントを新規登録するメソッド
-        async addComment() {
-            this.loadingFlg = true
-            const response = await request.post(`/api/photos/${this.photo.id}/comments`, {
-                content: this.comment
-            })
-            this.loadingFlg = false
-            //APIサーバでバリデーションエラーがあった際はエラーメッセージを表示して処理を途中終了
-            if (response.status === UNPROCESSABLE_ENTITY) {
-                this.commentErrors = response.data.errors
-                return false
-            }
-            this.comment = ''
-            this.commentErrors = ''
-            //APIサーバでバリデーションエラー以外のエラーがあった際はエラーページへリダイレクト（処理を途中終了）
-            if (response.status !== CREATED) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            //既に表示してあるthis.photo.commentsの先頭列に今APIサーバに送信して返却されたコメント(respons.data)を追加して表示
-            ;(this.photo.comments = [response.data, ...this.photo.comments]),
-                (this.photo.commented_by_user = true)
-        },
-        //投稿済みコメントを編集するためのフォームを表示するメソッド
-        async showEditForm() {
-            // 【認証切れ対策】CSRFトークンを更新する
-            await request.get('/sanctum/csrf-cookie')
-            this.showEditFormFlg = !this.showEditFormFlg
-            this.newComment = this.photo.comments.find(
-                (comment) => comment.commented_by_author == true
-            )
-            this.photo.comments = this.photo.comments.filter(
-                (comment) => !(comment.commented_by_author == true)
-            )
-        },
-        //コメント編集・再投稿メソッド
-        async editComment() {
-            this.loadingFlg = true
-            const response = await request.put(`/api/photos/${this.photo.id}/comments`, {
-                content: this.newComment.content
-            })
-            this.loadingFlg = false
-            if (response.status === UNPROCESSABLE_ENTITY) {
-                this.commentErrors = response.data.errors
-                return false
-            }
-            this.newComment = ''
-            this.commentErrors = ''
-            if (response.status !== CREATED) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            ;(this.photo.comments = [response.data, ...this.photo.comments]),
-                (this.showEditFormFlg = !this.showEditFormFlg)
-        },
-        //投稿コメントを消去するメソッド
-        async deleteComment() {
-            this.loadingFlg = true
-            const response = await request.delete(`/api/photos/${this.photo.id}/comments`)
-            this.loadingFlg = false
-            if (response.status !== OK) {
-                this.$store.commit('error/setCode', response.status)
-                return false
-            }
-            //表示中のコメント(photo.comments)から自分のコメントを消す
-            this.photo.comments = this.photo.comments.filter(
-                (elem) => !(elem.commented_by_author === true)
-            )
-            //コメントフォームを表示させる
-            this.photo.commented_by_user = false
-            this.commentErrors = ''
-        }
-    },
-    watch: {
-        //コメント新規投稿時のバリデーション
-        comment(newValue) {
-            if (newValue === '' || !newValue.match(/\S/g)) {
-                this.validation = '　　'
-            } else if (newValue.length > 500) {
-                this.validation = '500文字以内で入力してください'
-            } else {
-                this.validation = ''
-            }
-        },
-        //コメント編集時のバリデーション
-        'newComment.content': function (newValue) {
-            if (newValue === '' || !newValue.match(/\S/g)) {
-                this.validation = '　　'
-            } else if (newValue.length > 500) {
-                this.validation = '500文字以内で入力してください'
-            } else {
-                this.validation = ''
-            }
-        }
+const store = useStore()
+const {
+    reset,
+    Errors,
+    Form,
+    formValidation,
+    formFlg,
+    Validate,
+    ValidationFlg,
+    CreateForm,
+    contentLimit,
+    contentLimitFlg,
+    contentLengthCheck
+} = useForm()
+const { isLogin } = useAuth()
+const props = defineProps({
+    photoData: {
+        type: Object
     }
+})
+let oldComment = {}
+const showEditFormFlg = ref(false)
+const loadingFlg = ref(false)
+let currentComment = {}
+const photo = computed(() => {
+    return props.photoData
+})
+
+//コメントを編集するためのフォームを表示するメソッド
+const showEditForm = () => {
+    showEditFormFlg.value = !showEditFormFlg.value
+    currentComment = {} //投稿済の自分のコメント
+    // 【認証切れ対策】CSRFトークンを更新する
+    request.get('/sanctum/csrf-cookie')
+    if (photo.value.commented_by_user) {
+        currentComment = photo.value.comments.find(
+            (comment) => comment.commented_by_author === true
+        )
+        //編集中止に備えて編集前のコメントとnicknameなど情報を一時保存する
+        oldComment.content = JSON.parse(JSON.stringify(currentComment))
+        Form.value.content = currentComment.content
+    }
+    //自分のコメント以外を表示する
+    photo.value.comments = photo.value.comments.filter(
+        (comment) => !(comment.commented_by_author === true)
+    )
 }
+//コメント編集を中止してフォームを閉じるメソッド
+const canselEdit = () => {
+    loadingFlg.value = true
+    if (photo.value.commented_by_user) {
+        //退避していた編集前のコメントを再代入
+        currentComment.value = oldComment.content
+        photo.value.comments = [currentComment.value, ...photo.value.comments]
+    }
+    loadingFlg.value = false
+    showEditFormFlg.value = !showEditFormFlg.value
+    reset(Errors.value, formValidation.value, oldComment, Form.value)
+}
+//コメントをバリデーション後、投稿、新投稿を追加してコメントを再表示する
+const editComment = async () => {
+    loadingFlg.value = true
+    Validate()
+    if (!ValidationFlg.value) {
+        loadingFlg.value = false
+        return false
+    }
+    let response = {}
+    if (photo.value.commented_by_user) {
+        response = await request.put(`/api/photos/${photo.value.id}/comments`, {
+            content: Form.value.content
+        })
+    } else {
+        response = await request.post(`/api/photos/${photo.value.id}/comments`, {
+            content: Form.value.content
+        })
+    }
+    loadingFlg.value = false
+    if (response.status === UNPROCESSABLE_ENTITY) {
+        Errors.value = response.data.errors
+        return false
+    }
+    reset(Form.value, Errors.value)
+    if (response.status !== CREATED) {
+        store.commit('error/setCode', response.status)
+        return false
+    }
+    photo.value.comments = [response.data, ...photo.value.comments]
+    showEditFormFlg.value = !showEditFormFlg.value
+    photo.value.commented_by_user = true
+}
+//投稿コメントを消去するメソッド
+const deleteComment = async () => {
+    loadingFlg.value = true
+    const response = await request.delete(`/api/photos/${photo.value.id}/comments`)
+    loadingFlg.value = false
+    if (response.status !== OK) {
+        store.commit('error/setCode', response.status)
+        return false
+    }
+    //表示中のコメント(photo.comments)から自分のコメントを消す
+    photo.value.comments = photo.value.comments.filter(
+        (elem) => !(elem.commented_by_author === true)
+    )
+    photo.value.commented_by_user = false
+    reset(Errors.value)
+}
+//commentFormを生成
+;(() => {
+    formFlg.value = 'comment'
+    CreateForm()
+})()
 </script>
