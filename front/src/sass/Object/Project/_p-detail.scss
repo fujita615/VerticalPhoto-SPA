@@ -1,0 +1,149 @@
+@use '../../Foundation';
+
+.p-detail {
+    padding-top: 5rem;
+    &__container {
+        @include Foundation.mq('tab-pc') {
+            display: flex;
+            align-items: stretch;
+            margin: 0 -5vw;
+            justify-content: center;
+        }
+    }
+    &__sub-container {
+        margin-bottom: 2rem;
+        @include Foundation.mq('tab') {
+            width: 50%;
+        }
+        @include Foundation.mq('pc') {
+            width: 45%;
+        }
+    }
+    &__article {
+        margin-bottom: 2rem;
+        position: relative;
+        @include Foundation.mq('tab') {
+            width: 50%;
+            padding: 0 5vw;
+        }
+        @include Foundation.mq('pc') {
+            width: 55%;
+            padding: 0 5vw;
+        }
+    }
+    &__icon-container {
+        display: flex;
+    }
+    &__tag-container {
+        margin-left: 5vw;
+    }
+    &__tag-area {
+        position: relative;
+    }
+    &__tag-loader {
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        z-index: 5;
+        backdrop-filter: blur(10px);
+        color: Foundation.$base_gray;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        animation: lightbox 0.5s ease-out;
+    }
+    &__tag-loader-message {
+        color: Foundation.$base_gray;
+    }
+    &__button-container {
+        position: absolute;
+        bottom: 0;
+        right: 1rem;
+    }
+    &__figure {
+        width: 100%;
+        overflow: hidden;
+        text-align: center;
+        position: relative;
+        margin-bottom: 2rem;
+        pointer-events: none;
+        @include Foundation.mq('tab-pc') {
+            padding: 0 5vw;
+            pointer-events: auto;
+        }
+        &.p-detail__figure--full {
+            @include Foundation.mq('tab-pc') {
+                display: grid;
+                place-items: center;
+                background-color: rgba(0, 0, 0, 0.5);
+                width: 100%;
+                height: 100%;
+                z-index: 10;
+                position: fixed;
+                top: 0;
+                left: 0;
+                animation: lightbox 1s ease-out;
+            }
+        }
+    }
+    &__comment-count {
+        text-align: right;
+        display: block;
+        margin-right: 1rem;
+        font-size: 2rem;
+    }
+    &__comment-container {
+        padding-right: 2rem;
+        padding-top: 2rem;
+        margin-right: -2rem;
+        max-height: 70vh;
+        overflow: scroll;
+        margin-bottom: 2rem;
+    }
+
+    &__comment {
+        position: relative;
+        background-color: Foundation.$base;
+        padding: 0.5rem 2rem;
+        margin-bottom: 3rem;
+        animation: lightbox 1s ease-out;
+
+        &:before {
+            border-left: solid 0.2rem Foundation.$base_black;
+            border-top: solid 0.2rem Foundation.$base_black;
+            content: '';
+            top: 0;
+            left: 0;
+            width: 4rem;
+            height: 3rem;
+            position: absolute;
+            display: inline-block;
+        }
+        &:after {
+            border-right: solid 0.2rem Foundation.$base_black;
+            border-bottom: solid 0.2rem Foundation.$base_black;
+            bottom: 0;
+            right: 0;
+            content: '';
+            width: 4rem;
+            height: 3rem;
+            position: absolute;
+            display: inline-block;
+        }
+        &.p-detail__comment--by-author {
+            background-color: Foundation.$accent;
+            &:before {
+                border-left: solid 0.3rem Foundation.$contrast;
+                border-top: solid 0.3rem Foundation.$contrast;
+            }
+            &:after {
+                border-right: solid 0.3rem Foundation.$contrast;
+                border-bottom: solid 0.3rem Foundation.$contrast;
+            }
+        }
+        &.p-detail__comment--by-author.p-detail__comment--by-author--none {
+            display: none;
+        }
+    }
+}

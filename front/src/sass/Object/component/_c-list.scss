@@ -1,0 +1,12 @@
+@use '../../Foundation';
+
+.c-list {
+    list-style: disc;
+    &.c-list--skillset {
+        padding-left: 2rem;
+        margin-bottom: 1rem;
+    }
+    &__item {
+        margin-bottom: 1rem;
+    }
+}

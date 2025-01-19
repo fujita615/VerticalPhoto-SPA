@@ -1,0 +1,18 @@
+@use '../../Foundation';
+
+.c-head-line {
+    font-family: Foundation.$e-family;
+    line-height: 1.4;
+    font-size: 4.8rem;
+    font-weight: 500;
+    animation-name: fade;
+    animation-duration: 5s;
+
+    @include Foundation.mq('tab') {
+        font-size: 7.2rem;
+    }
+
+    @include Foundation.mq('pc') {
+        font-size: 9.6rem;
+    }
+}

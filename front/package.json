@@ -1,0 +1,42 @@
+{
+  "name": "vp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build &&  esbuild dist/assets/**.js --minify --outdir=dist/assets --allow-overwrite",
+    "preview": "vite preview",
+    "lint": "eslint src/ --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "vue": "^3.4.29"
+  },
+  "devDependencies": {
+    "@eslint/config-array": "^0.18.0",
+    "@eslint/object-schema": "^2.1.4",
+    "@popperjs/core": "^2.11.8",
+    "@rushstack/eslint-patch": "^1.8.0",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "@vue/eslint-config-prettier": "^9.0.0",
+    "autoprefixer": "^10.4.20",
+    "axios": "^1.7.7",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.23.0",
+    "globals": "^15.9.0",
+    "postcss": "^8.4.45",
+    "postcss-csso": "^6.0.1",
+    "prettier": "^3.2.5",
+    "sass": "^1.79.2",
+    "vite": "^5.3.1",
+    "vue-router": "^4.4.4",
+    "vuex": "^4.1.0"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "android >= 4",
+    "iOS >= 10",
+    "not dead"
+  ]
+}

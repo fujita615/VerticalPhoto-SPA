@@ -1,0 +1,83 @@
+@use '../../Foundation';
+
+.p-mypage {
+    padding-top: 6rem;
+    &__container {
+        margin: auto;
+        max-width: 90%;
+        margin-bottom: 4rem;
+        @include Foundation.mq('tab-pc') {
+            max-width: 60%;
+        }
+    }
+    &__table {
+        position: relative;
+        width: 100%;
+    }
+    &__table-label {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+        @include Foundation.mq('tab-pc') {
+            font-size: 2rem;
+        }
+    }
+    &__table-dd {
+        width: 100%;
+        position: relative;
+        margin-bottom: 2rem;
+        overflow: hidden;
+        height: 5rem;
+    }
+    &__table-icon {
+        position: absolute;
+        top: 1.2rem;
+        left: 1.6rem;
+    }
+    &__table-item {
+        width: 100%;
+        padding: 1rem 1rem;
+        background-color: Foundation.$base_white;
+        border-radius: 0.7rem;
+        border: none;
+        padding-left: 4rem;
+        text-align: left;
+    }
+    &__slide-container {
+        display: flex;
+        justify-content: flex-start;
+        padding-left: 4rem;
+        align-items: stretch;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        margin-bottom: 5rem;
+        @include Foundation.mq('tab-pc') {
+            margin-bottom: 0;
+        }
+    }
+    &__photo-count {
+        text-align: right;
+        display: block;
+        margin-right: 1rem;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    &__card {
+        flex-shrink: 0;
+        position: relative;
+        width: auto;
+        height: 63vh;
+        margin-bottom: 5rem;
+        margin-right: 1vw;
+        @include Foundation.mq('tab') {
+            width: 33vw;
+            height: auto;
+        }
+        @include Foundation.mq('pc') {
+            width: 24vw;
+            height: auto;
+        }
+    }
+    &__figure {
+        margin-bottom: 4rem;
+    }
+}

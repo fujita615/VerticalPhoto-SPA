@@ -1,0 +1,12 @@
+@use '../../Foundation';
+
+.p-tag {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    &__item {
+        margin-bottom: 0.1rem;
+        margin-right: 0.1rem;
+        height: 5rem;
+    }
+}

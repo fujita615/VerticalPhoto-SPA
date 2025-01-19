@@ -1,0 +1,20 @@
+@use '../../Foundation';
+
+.c-paragraph {
+    word-wrap: break-word;
+    &.c-paragraph--article {
+        margin-block-start: 1.6rem;
+        margin-block-end: 1.6rem;
+    }
+    &.c-paragraph--comment {
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+    &__commenter {
+        font-size: 1.6rem;
+        text-align: right;
+    }
+    &.c-paragraph--note {
+        color: Foundation.$alert;
+    }
+}

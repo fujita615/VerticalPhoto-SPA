@@ -1,0 +1,42 @@
+@use '../../Foundation';
+
+.c-textarea {
+    text-align: left;
+    resize: none;
+    padding: 1rem 1.5rem;
+    width: 100%;
+    color: inherit;
+    background-color: transparent;
+    border-radius: 0.8rem;
+    border: 0.1rem solid;
+    &::placeholder {
+        color: inherit;
+    }
+    @media (hover: hover) {
+        &:focus,
+        &:hover {
+            background-color: rgba(Foundation.$base_beige, 0.05);
+        }
+    }
+    @media (hover: none) {
+        &:focus,
+        &:active {
+            background-color: rgba(Foundation.$base_beige, 0.05);
+        }
+    }
+    &:focus-visible {
+        background-color: Foundation.$base_white;
+        outline: 0.2rem solid;
+    }
+    &.c-textarea--comment {
+        border: 0.2rem solid;
+        border-color: Foundation.$base_black;
+        background-color: Foundation.$base_white;
+        margin-bottom: 3rem;
+    }
+    &.c-textarea--contact {
+        border: 0.2rem solid;
+        border-color: Foundation.$base_beige;
+        background-color: Foundation.$base_white;
+    }
+}

@@ -1,0 +1,24 @@
+@use '../../Foundation';
+
+.c-label {
+    &.c-label--tab {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        height: 5rem;
+        border-bottom: 0.3rem solid Foundation.$base_gray;
+        background-color: Foundation.$base_black;
+        line-height: 5rem;
+        font-size: 1em;
+        text-align: center;
+        color: Foundation.$base_white;
+        display: inline-block;
+        margin-right: 0.1rem;
+        opacity: 0.2;
+        @include Foundation.mq('tab-pc') {
+            font-size: 2rem;
+        }
+        &.is-active {
+            opacity: 1;
+        }
+    }
+}
