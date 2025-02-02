@@ -221,7 +221,7 @@ const submitPhoto = async () => {
         message: '写真を投稿しました！',
         timeout: 6000
     })
-    router.push(`/photos/${response.data.id}`)
+    router.push(`/photos/?id=${response.data.id}`)
 }
 //フォームを閉じるメソッド
 const changeShowPhotoForm = () => {
