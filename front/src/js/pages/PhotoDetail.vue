@@ -95,7 +95,7 @@
                         <i class="fa-solid fa-trash-can"></i>写真を削除する
                     </button>
                 </div>
-                <DialogComponent v-show="modal.photoDelete.isShow && !isdeleteFlg">
+                <DialogComponent v-show="modal.photoDelete.isShow && !isDeleteFlg">
                     <template #header>写真の削除</template>
                     <template #body>
                         <p>
@@ -153,6 +153,7 @@ const props = defineProps({
         required: true
     }
 })
+const isDeleteFlg = ref(false)
 const photo = ref('')
 const photos = computed(() => {
     return photo.value
@@ -207,18 +208,20 @@ const fetchPhoto = async () => {
 
 //写真データを削除するメソッド
 const deletePhoto = async () => {
-    await store.dispatch('loader/showLoader', 'delete a photo...')
+    isDeleteFlg.value = true
+    store.dispatch('loader/showLoader', 'delete a photo...')
     const response = await request.delete(`/api/photos/${props.id}`)
-    await store.dispatch('loader/closeLoader')
+    store.dispatch('loader/closeLoader')
+    isDeleteFlg.value = false
     if (response.status !== OK) {
         store.commit('error/setCode', response.status)
         return false
     }
+    router.push('/')
     store.commit('message/setSuccess', {
         message: '写真を削除しました',
         timeout: 3000
     })
-    router.push('/')
 }
 
 // いいねAPI完了の写真のIDの通知を監視
