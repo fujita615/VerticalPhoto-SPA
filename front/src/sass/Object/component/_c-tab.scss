@@ -1,0 +1,7 @@
+@use '../../Foundation';
+
+.c-tab {
+    &__item {
+        transition: all 0.2s ease;
+    }
+}

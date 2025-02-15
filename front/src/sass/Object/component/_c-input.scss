@@ -1,0 +1,64 @@
+@use '../../Foundation';
+
+.c-input {
+    width: 100%;
+    padding: 1rem 1rem;
+    background-color: Foundation.$base;
+    border-radius: 0.7rem;
+    border: 0.1rem solid;
+    color: inherit;
+
+    &::placeholder {
+        color: inherit;
+    }
+    @media (hover: hover) {
+        &:focus,
+        &:hover {
+            background-color: rgba(Foundation.$base_gray, 0.05);
+        }
+    }
+    @media (hover: none) {
+        &:focus,
+        &:active {
+            background-color: rgba(Foundation.$base_gray, 0.05);
+        }
+    }
+    &:focus-visible {
+        outline: 0.4rem solid;
+        background-color: Foundation.$base_white;
+    }
+    &.c-input--form {
+        padding-left: 4rem;
+        border: none;
+        text-align: left;
+    }
+    &.c-input--search {
+        padding-left: 4rem;
+        border: 0.1rem solid;
+        background-color: Foundation.$base_white;
+        border-radius: 1rem;
+    }
+    &.c-input--photo {
+        border: 0.1rem solid;
+        background-color: Foundation.$base_white;
+        height: 49vh;
+        opacity: 0;
+        position: absolute;
+
+        &::file-selector-button {
+            border: 0.2rem solid Foundation.$main;
+            color: Foundation.$base_black;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            display: inline;
+        }
+    }
+    &__label {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+        @include Foundation.mq('tab-pc') {
+            font-size: 2rem;
+        }
+    }
+}

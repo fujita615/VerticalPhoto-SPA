@@ -1,0 +1,103 @@
+@use '../../Foundation';
+
+.c-figure {
+    &__image {
+        display: block;
+        width: 100%;
+        cursor: zoom-in;
+        //Modifier
+        &.c-figure__image--detail {
+            margin: auto;
+            object-fit: cover;
+        }
+        &.c-figure__image--full {
+            cursor: default;
+            @include Foundation.mq('tab-pc') {
+                position: relative;
+                width: auto;
+                height: 90vh;
+                display: block;
+                margin: 0 auto;
+                animation: sizeup 1s ease-out;
+            }
+        }
+        &.c-figure__image--photolist {
+            @include Foundation.mq('tab-pc') {
+                height: 28em;
+                object-fit: cover;
+            }
+        }
+        &.c-figure__image--zoom-mask {
+            transform: scale(1);
+            filter: blur(0);
+            transition: 0.3s ease-in-out;
+        }
+    }
+    &.c-figure--zoom-mask {
+        position: relative;
+        cursor: zoom-in;
+        //hover時の動作
+        @media (hover: hover) {
+            &:hover .c-figure__mask::before {
+                content: '';
+                position: absolute;
+                z-index: 2;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(Foundation.$base_white, 0.5);
+            }
+            //写真が少しぼやけながら大きくなる
+            &:hover .c-figure__image--zoom-mask {
+                transform: scale(1.2);
+                filter: blur(2px);
+            }
+            //hover時にダウンロード・いいねボタン・投稿者表示レイヤーを表示
+            &:hover .c-figure__mask-area {
+                opacity: 1;
+            }
+        }
+    }
+    //Element
+    &__mask {
+        position: relative;
+        transition: 0.3s ease-in-out;
+        display: block;
+        line-height: 0;
+        overflow: hidden;
+    }
+    //ダウンロード・いいねボタン・投稿者表示レイヤー
+    &__mask-area {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        opacity: 0;
+        transition: 0.5s ease-in-out;
+        position: absolute;
+        z-index: 2;
+        top: 100%;
+        left: 100%;
+        transform: translate(-100%, -100%);
+        line-height: 1.5;
+        width: 100%;
+        height: 100%;
+        //hoverしないデバイスの時はダウンロード・いいねボタン・投稿者名レイヤーをデフォルトで表示
+        @media (hover: none) {
+            opacity: 1;
+        }
+    }
+    &__photographer {
+        color: Foundation.$base_black;
+        font-size: 1.6rem;
+        &.c-figure__photographer--mask {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+        //hoverしないデバイスの時は投稿者名に白背景をつける
+        @media (hover: none) {
+            background-color: rgba(Foundation.$base_white, 0.5);
+        }
+    }
+}

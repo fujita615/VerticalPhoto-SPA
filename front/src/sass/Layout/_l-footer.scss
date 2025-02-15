@@ -1,0 +1,47 @@
+@use '../Foundation';
+
+.l-footer {
+    background-color: Foundation.$base;
+    padding: 3rem 0 2rem;
+    margin-top: auto;
+
+    &__nav-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 2rem;
+        font-size: 1.9rem;
+    }
+    &__link {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    &__info {
+        @include Foundation.mq('tab-pc') {
+            display: flex;
+            align-items: flex-end;
+            flex-direction: reverse;
+            justify-content: center;
+        }
+    }
+    &__copyright {
+        text-align: center;
+    }
+    &__dot {
+        display: none;
+        @include Foundation.mq('tab-pc') {
+            display: block;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+    &__colophon {
+        text-align: center;
+        margin-bottom: 0.3rem;
+        @include Foundation.mq('tab-pc') {
+            margin-bottom: 0;
+        }
+    }
+}

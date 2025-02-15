@@ -1,0 +1,38 @@
+@use '../../Foundation';
+
+.p-photolist {
+    padding-top: 3rem;
+    &__container {
+        @include Foundation.mq('tab') {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            column-gap: 1vw;
+            row-gap: 1vh;
+        }
+        @include Foundation.mq('pc') {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            column-gap: 1vw;
+            row-gap: 1vh;
+        }
+    }
+    &__card {
+        width: 100%;
+    }
+    &__figure {
+        margin-bottom: 4rem;
+    }
+    &__moreview-container {
+        display: flex;
+        justify-content: space-between;
+        height: 6rem;
+    }
+    &__moreview-next {
+        font-size: 1.6rem;
+        display: block;
+    }
+    &__moreview-preview {
+        font-size: 3.6rem;
+        display: block;
+    }
+}
