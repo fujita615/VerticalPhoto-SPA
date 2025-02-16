@@ -127,7 +127,7 @@ const photoinput = ref() //input要素を操作するためのref属性
 //Formの初期化メソッド
 const photoFormReset = (...items: (resetObject | null)[]): void => {
     photo.value = null
-    // preview.value = null
+
     dataReset(...items)
 }
 
@@ -139,7 +139,7 @@ const onFileChange = (event: Event) => {
     //ファイルが空だったら処理中止
     if (event.target instanceof HTMLInputElement) {
         if (!event.target.files || event.target.files.length === 0) {
-            photoFormReset(validation.value, tagValidation.value, verifiedWord)
+            photoFormReset(validation.value, tagValidation.value, verifiedWord, preview.value)
             photoinput.value.value = null
             photoValidationFlg.value = false
             return false
@@ -147,7 +147,7 @@ const onFileChange = (event: Event) => {
 
         //ファイルが画像形式でなかったら処理中止
         if (!event.target.files[0].type.match('image.*')) {
-            validation.value.photo = '画像形式のみ保存可能です'
+            validation.value.photo = '画像形式のデータのみ保存可能です'
             return false
         }
         //ファイルが画像形式でなかったら処理中止
@@ -203,7 +203,7 @@ const submitPhoto = async () => {
         return false
     }
     //フォームの内容やerrorメッセージを空にしてフォームを閉じる
-    photoFormReset(tags.value, validation.value, tagValidation.value, verifiedWord)
+    photoFormReset(tags.value, validation.value, tagValidation.value, verifiedWord, preview.value)
     photoValidationFlg.value = false
     photoinput.value.value = null
     setShowPhotoForm()
@@ -214,7 +214,7 @@ const submitPhoto = async () => {
     }
     //通信成功ならsuccessメッセージを表示して投稿した写真の詳細ページへリダイレクト
     setSuccess('写真を投稿しました！', 6000)
-    router.push(`/photos/?id=${response.data.id}`)
+    router.push(`/photos?id=${response.data.id}`)
 }
 
 watch(
@@ -246,6 +246,7 @@ watch(showPhotoFormFlg, (newValue) => {
             validation.value,
             photoErrors.value,
             tagValidation.value,
+            preview.value,
             verifiedWord
         )
         photoinput.value.value = null
